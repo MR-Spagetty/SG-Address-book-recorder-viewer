@@ -2,4 +2,4 @@
 
 
 # Credits
-MW glyphs ico files - [unique2063 on deviant art](https://www.deviantart.com/unique2063)
+MW glyphs jpg files - [maerad-of-pellinor on deviant art](https://www.deviantart.com/maerad-of-pellinor)

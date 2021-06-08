@@ -8,7 +8,7 @@ glyph5=5
 glyph6=6
 glyph7=none
 glyph8=none
-pg
+peg
 glyph1=none
 glyph2=none
 glyph3=none
@@ -17,7 +17,7 @@ glyph5=none
 glyph6=none
 glyph7=none
 glyph8=none
-un
+uni
 glyph1=none
 glyph2=none
 glyph3=none
@@ -36,7 +36,7 @@ glyph5=7
 glyph6=6
 glyph7=none
 glyph8=none
-pg
+peg
 glyph1=none
 glyph2=none
 glyph3=none
@@ -45,7 +45,7 @@ glyph5=none
 glyph6=none
 glyph7=none
 glyph8=none
-un
+uni
 glyph1=none
 glyph2=none
 glyph3=none

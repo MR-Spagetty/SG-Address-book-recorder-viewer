@@ -19,12 +19,47 @@ def load_glyphs(path, folder='MW', glyph_names=[
     failed_to_load = []
 
     for glyph_name in glyph_names:
-        glyph_path = f'{path}Glyphs\\{folder}\\{glyph_names.index(glyph_name)+1} {glyph_name}.ico'
+        glyph_path = f'{path}Glyphs\\{folder}\\Glyph ({glyph_names.index(glyph_name)+1}).jpg'
         if os.path.isfile(glyph_path):
             glyphs[glyph_name] = glyph_path
         else:
             failed_to_load.append(glyph_name)
     return glyphs, failed_to_load
+
+
+def output_generator(book_to_output, books, out_path):
+    book_items = []
+    for item in books[book_to_output]:
+        book_item = f"""
+name={book_to_output}
+mw
+glyph1={item['mw']['glyph1']}
+glyph2={item['mw']['glyph2']}
+glyph3={item['mw']['glyph3']}
+glyph4={item['mw']['glyph4']}
+glyph5={item['mw']['glyph5']}
+glyph6={item['mw']['glyph6']}
+glyph7={item['mw']['glyph7']}
+glyph8={item['mw']['glyph8']}
+peg
+glyph1={item['peg']['glyph1']}
+glyph2={item['peg']['glyph2']}
+glyph3={item['peg']['glyph3']}
+glyph4={item['peg']['glyph4']}
+glyph5={item['peg']['glyph5']}
+glyph6={item['peg']['glyph6']}
+glyph7={item['peg']['glyph7']}
+glyph8={item['peg']['glyph8']}
+uni
+glyph1={item['uni']['glyph1']}
+glyph2={item['uni']['glyph2']}
+glyph3={item['uni']['glyph3']}
+glyph4={item['uni']['glyph4']}
+glyph5={item['uni']['glyph5']}
+glyph6={item['uni']['glyph6']}
+glyph7={item['uni']['glyph7']}
+glyph8={item['uni']['glyph8']}"""
+        book_items.append(book_item)
 
 
 def setup():
@@ -45,8 +80,24 @@ def setup():
                       'Monoceros', 'Gemini', 'Hydra', 'Lynx', 'Cancer',
                       'Sextans', 'Leo Minor', 'Leo']
 
-    success, failed = load_glyphs(file_location)
-    print(f"""{len(success)} glyphs were succesfully loaded
+    PEG_GLYPHS_LIST = ['Subdio', 'Earth', 'Acejesis', 'Lenchan', 'Alura',
+                       'Ca Po', 'Laynox', 'Ecrumig', 'Avoniv', 'Bydo',
+                       'Aaxel', 'Aldeni', 'Setas', 'Arami', 'Danami',
+                       'Robandus', 'Recktic', 'Zamilloz', 'Dawnre', 'Salma',
+                       'Hamlinto', 'Elenami', 'Tahnan', 'Zeo', 'Roehi',
+                       'Once El', 'Sandovi', 'Illume', 'Amiwill', 'Sibbron',
+                       'Gillitin', 'Ramnon', 'Olavii', 'Hacemill', 'Poco Re',
+                       'Abrin']
+
+    UNI_GLYPHS_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+                       31, 32, 33, 34, 35, 36]
+
+    GLYPH_TYPES = {'MW': MW_GLYPHS_LIST, 'PEG': PEG_GLYPHS_LIST, 'UNI': UNI_GLYPHS_LIST}
+
+    for folder, glyph_type in GLYPH_TYPES.items():
+        success, failed = load_glyphs(file_location, folder, glyph_type)
+        print(f"""{len(success)} glyphs were succesfully loaded
 {len(failed)} glyphs failed to load
 glyphs that failed to load:\n{failed}""")
 
