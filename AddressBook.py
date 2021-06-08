@@ -19,7 +19,8 @@ def load_glyphs(path, folder='MW', glyph_names=[
     failed_to_load = []
 
     for glyph_name in glyph_names:
-        glyph_path = f'{path}Glyphs\\{folder}\\Glyph ({glyph_names.index(glyph_name)+1}).jpg'
+        glyph_id = glyph_names.index(glyph_name) + 1
+        glyph_path = f'{path}Glyphs\\{folder}\\Glyph ({glyph_id}).jpg'
         if os.path.isfile(glyph_path):
             glyphs[glyph_name] = glyph_path
         else:
@@ -93,7 +94,9 @@ def setup():
                        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
                        31, 32, 33, 34, 35, 36]
 
-    GLYPH_TYPES = {'MW': MW_GLYPHS_LIST, 'PEG': PEG_GLYPHS_LIST, 'UNI': UNI_GLYPHS_LIST}
+    GLYPH_TYPES = {'MW': MW_GLYPHS_LIST,
+                   'PEG': PEG_GLYPHS_LIST,
+                   'UNI': UNI_GLYPHS_LIST}
 
     for folder, glyph_type in GLYPH_TYPES.items():
         success, failed = load_glyphs(file_location, folder, glyph_type)
@@ -130,7 +133,8 @@ glyphs that failed to load:\n{failed}""")
                     book_items[address_name][glyph_type] = {}
                 elif 'glyph' in line:
                     glyph_num, glyph_name = line.strip().split('=')
-                    book_items[address_name][glyph_type][glyph_num] = glyph_name
+                    book_items[
+                        address_name][glyph_type][glyph_num] = glyph_name
             book_path_order = book_path.split('/')
             book_name = book_path_order[-1]
             book_name_textvar.set(f'Book Name: {book_name}')
