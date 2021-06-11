@@ -2,4 +2,4 @@
 
 
 # Credits
-MW glyphs jpg files - [maerad-of-pellinor on deviant art](https://www.deviantart.com/maerad-of-pellinor)
+Credit to all glyphs goes to MR. Jake from teh (AUNIS mod)[https://github.com/MrJake222/AUNIS/tree/master/src/main/resources/assets/aunis/textures/gui/symbol/milkyway]

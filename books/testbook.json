@@ -1,0 +1,19 @@
+{
+    "name": "earth",
+    "addresses": [
+        {
+            "type": "mw",
+            "glyph1": "Eridanus",
+            "glyph2": "Taurus",
+            "glyph3": "Libra",
+            "glyph4": "Sextans",
+            "glyph5": "Aquila",
+            "glyph6": "Orion",
+            "glyph7": "none",
+            "glyph8": "none"
+        },
+        {
+            "type": "peg"
+        }
+    ]
+}
