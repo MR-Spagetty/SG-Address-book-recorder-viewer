@@ -9,6 +9,19 @@ import json
 
 
 def load_glyphs(path, folder, glyph_names):
+    """Loads a seris of glyphs and returns a 300px^2 and a 100px^2
+    version aswell as a list of those that failed to load
+
+    Args:
+        path (str): path to use
+        folder (str): folder images are contained in
+        glyph_names (list): a list of glyph names to load
+
+    Returns:
+        dict: dictionary of image objects using glyph names as keys
+        dict: smol version of previous
+        list: list of glyph names that failed to load
+    """
     glyphs = {}
     smol_glyphs = {}
     failed_to_load = []
@@ -27,6 +40,8 @@ def load_glyphs(path, folder, glyph_names):
 
 
 def setup():
+    """sets up the GUI for the program
+    """
 
     def disable_event():
         pass
@@ -371,5 +386,6 @@ glyphs that failed to load:\n{failed}""")
                 displays[id][0].configure(image=none_image)
     update_display(current_displayed_glyphs)
 
-setup()
-root.mainloop()
+if __name__ == '__main__':
+    setup()
+    root.mainloop()
