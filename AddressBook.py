@@ -34,10 +34,6 @@ def load_glyphs(path, folder, glyph_names):
     return glyphs, smol_glyphs, failed_to_load
 
 
-def output_generator(book_to_output, books, out_path):
-    book_items = []
-
-
 def setup():
     global file_location
     file_location = __file__.replace('AddressBook.py', '')
@@ -133,7 +129,7 @@ glyphs that failed to load:\n{failed}""")
     add_book_button = gui.Button(
         root, command=add_book, background='white', text='+',
         font=('Sans Serif', 12), fg='black')
-    add_book_button.pack()
+    add_book_button.grid(row=0, column=0)
 
     book_name_textvar = gui.StringVar(root, 'Book Name: ')
 
@@ -143,13 +139,57 @@ glyphs that failed to load:\n{failed}""")
         for book in loaded_books:
             Book_menu.add_radiobutton(label=book, variable=selected_book)
 
+    new_item_window = gui.Toplevel(root)
+    new_item_window.withdraw()
+
+    def new_book():
+
+        new_item_window.title('New book')
+
+        book_name = gui.StringVar(new_item_window)
+        book_name_entry = gui.Entry(new_item_window, textvariable=book_name)
+        book_name_entry.grid(row=0, column=0)
+
+        def finish():
+            global loaded_books
+            new_item_window.withdraw()
+            loaded_books[gui.StringVar.get(book_name)] = {}
+            book_menu_update()
+            for child in new_item_window.winfo_children():
+                child.destroy()
+
+        done_button = gui.Button(new_item_window, text='Done', command=finish)
+        done_button.grid(row=0, column=1)
+
+        new_item_window.deiconify()
+
     selected_book = gui.StringVar()
     Book_menu_button = gui.Menubutton(root, text='Books', bd=1)
     Book_menu = gui.Menu(Book_menu_button, tearoff=0)
     Book_menu_button['menu'] = Book_menu
-    Book_menu_button.pack()
+    Book_menu_button.grid(row=1, column=0)
     selected_book_label = gui.Label(root, textvariable=selected_book)
-    selected_book_label.pack()
+    selected_book_label.grid(row=1, column=1)
+    new_book_button = gui.Button(root, text='New book', command=new_book)
+    new_book_button.grid(row=1, column=2)
+
+    def save_book():
+        book_path = filedialog.asksaveasfilename(
+            filetypes=(('JSON files', '*.json'), ('All files', '*.*'))
+        )
+        entries = loaded_books[gui.StringVar.get(selected_book)]
+        data_to_write = {}
+        for entry_name, entry in entries.items():
+            data_to_write[entry_name] = dict(entry)
+        if not book_path.endswith('.json'):
+            book_path = f'{book_path}.json'
+        with open(book_path, 'w') as book_file:
+            json.dump(data_to_write, book_file, indent=4)
+        if True:
+            return 'succesfull', book_path
+
+    save_button = gui.Button(root, text='Save', command=save_book)
+    save_button.grid(row=0, column=1)
 
     def address_menu_update(x, y, z):
         addresses_menu = gui.Menu(addresses_menu_button, tearoff=0)
@@ -172,14 +212,73 @@ glyphs that failed to load:\n{failed}""")
         except KeyError:
             pass
 
+    def new_address():
+        TEMPLATE = {
+            "mw": {
+                "glyph1": "none",
+                "glyph2": "none",
+                "glyph3": "none",
+                "glyph4": "none",
+                "glyph5": "none",
+                "glyph6": "none",
+                "glyph7": "none",
+                "glyph8": "none"
+            },
+            "peg": {
+                "glyph1": "none",
+                "glyph2": "none",
+                "glyph3": "none",
+                "glyph4": "none",
+                "glyph5": "none",
+                "glyph6": "none",
+                "glyph7": "none",
+                "glyph8": "none"
+            },
+            "uni": {
+                "glyph1": "none",
+                "glyph2": "none",
+                "glyph3": "none",
+                "glyph4": "none",
+                "glyph5": "none",
+                "glyph6": "none",
+                "glyph7": "none",
+                "glyph8": "none"
+            }
+        }
+        new_item_window.title('New address')
+
+        address_name = gui.StringVar(new_item_window)
+        address_name_entry = gui.Entry(new_item_window,
+                                       textvariable=address_name)
+        address_name_entry.grid(row=0, column=0)
+
+        def finish():
+            global loaded_books
+            new_item_window.withdraw()
+            loaded_books[
+                gui.StringVar.get(selected_book)
+                ][
+                    gui.StringVar.get(address_name)] = dict(TEMPLATE)
+            address_menu_update('a', 'b', 'c')
+            for child in new_item_window.winfo_children():
+                child.destroy()
+
+        done_button = gui.Button(new_item_window, text='Done', command=finish)
+        done_button.grid(row=0, column=1)
+
+        new_item_window.deiconify()
+
     selected_address = gui.StringVar()
     selected_address.trace_add('write', change_displayed)
     addresses_menu_button = gui.Menubutton(root, text='Addresses', bd=1)
     addresses_menu = gui.Menu(addresses_menu_button, tearoff=0)
     addresses_menu_button['menu'] = addresses_menu
-    addresses_menu_button.pack()
+    addresses_menu_button.grid(row=2, column=0)
     selected_address_Label = gui.Label(root, textvariable=selected_address)
-    selected_address_Label.pack()
+    selected_address_Label.grid(row=2, column=1)
+    new_address_button = gui.Button(root, text='New address',
+                                    command=new_address)
+    new_address_button.grid(row=2, column=2)
 
     display_window = gui.Toplevel(root)
     display_window.title('address display')
@@ -222,11 +321,13 @@ glyphs that failed to load:\n{failed}""")
                                             change_glyph_logic(id, glyph_name),
                                             background='magenta2')
         for glyph_name, button in buttons.items():
-            row, column = divmod(GLYPH_TYPES[selected_type].index(glyph_name), 6)
+            row, column = divmod(
+                GLYPH_TYPES[selected_type].index(glyph_name), 6)
             button.grid(row=row, column=column)
         global smol_none_image
         none_button = gui.Button(edit_window, image=smol_none_image,
-                                 background='magenta2', command=lambda: change_glyph_logic(id))
+                                 background='magenta2',
+                                 command=lambda: change_glyph_logic(id))
         if column + 1 == 6:
             row += 1
             column = 0

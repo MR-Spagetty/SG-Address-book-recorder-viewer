@@ -1,12 +1,12 @@
 {
     "earth": {
         "mw": {
-            "glyph1": "Eridanus",
-            "glyph2": "Taurus",
-            "glyph3": "Libra",
-            "glyph4": "Sextans",
-            "glyph5": "Aquila",
-            "glyph6": "Orion",
+            "glyph1": "Auriga",
+            "glyph2": "Cetus",
+            "glyph3": "Centaurus",
+            "glyph4": "Cancer",
+            "glyph5": "Scutum",
+            "glyph6": "Eridanus",
             "glyph7": "none",
             "glyph8": "none"
         },
@@ -23,12 +23,12 @@
         "uni": {
             "glyph1": "g10",
             "glyph2": "g15",
-            "glyph3": "none",
-            "glyph4": "none",
-            "glyph5": "none",
-            "glyph6": "none",
-            "glyph7": "none",
-            "glyph8": "none"
+            "glyph3": "g20",
+            "glyph4": "g26",
+            "glyph5": "g28",
+            "glyph6": "g13",
+            "glyph7": "g18",
+            "glyph8": "g6"
         }
     }
 }
