@@ -8,14 +8,6 @@ from PIL import ImageTk, Image
 import json
 
 
-class Book:
-    pass
-
-
-class Address:
-    pass
-
-
 def load_glyphs(path, folder, glyph_names):
     glyphs = {}
     smol_glyphs = {}
@@ -35,6 +27,10 @@ def load_glyphs(path, folder, glyph_names):
 
 
 def setup():
+
+    def disable_event():
+        pass
+
     global file_location
     file_location = __file__.replace('AddressBook.py', '')
     global root
@@ -127,7 +123,7 @@ glyphs that failed to load:\n{failed}""")
             loaded_books[name] = items
         book_menu_update()
     add_book_button = gui.Button(
-        root, command=add_book, background='white', text='+',
+        root, command=add_book, background='white', text='Load',
         font=('Sans Serif', 12), fg='black')
     add_book_button.grid(row=0, column=0)
 
@@ -141,6 +137,7 @@ glyphs that failed to load:\n{failed}""")
 
     new_item_window = gui.Toplevel(root)
     new_item_window.withdraw()
+    new_item_window.protocol("WM_DELETE_WINDOW", disable_event)
 
     def new_book():
 
@@ -282,6 +279,8 @@ glyphs that failed to load:\n{failed}""")
 
     display_window = gui.Toplevel(root)
     display_window.title('address display')
+    display_window.protocol("WM_DELETE_WINDOW", disable_event)
+
     address_type_selected = gui.StringVar(display_window)
     address_type_spin = gui.Spinbox(display_window,
                                     values=list(GLYPH_TYPES.keys()),
@@ -296,6 +295,7 @@ glyphs that failed to load:\n{failed}""")
 
     edit_window = gui.Toplevel(display_window)
     edit_window.withdraw()
+    edit_window.protocol("WM_DELETE_WINDOW", disable_event)
 
     def change_glyph_logic(id, glyph_name='none'):
         global current_displayed_glyphs
