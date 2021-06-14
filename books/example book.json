@@ -1,0 +1,34 @@
+{
+    "earth": {
+        "mw": {
+            "glyph1": "Eridanus",
+            "glyph2": "Taurus",
+            "glyph3": "Libra",
+            "glyph4": "Sextans",
+            "glyph5": "Aquila",
+            "glyph6": "Orion",
+            "glyph7": "none",
+            "glyph8": "none"
+        },
+        "peg": {
+            "glyph1": "Bydo",
+            "glyph2": "Zeo",
+            "glyph3": "Once El",
+            "glyph4": "Dawnre",
+            "glyph5": "Ramnon",
+            "glyph6": "Gilltin",
+            "glyph7": "Elenami",
+            "glyph8": "none"
+        },
+        "uni": {
+            "glyph1": "g10",
+            "glyph2": "g15",
+            "glyph3": "none",
+            "glyph4": "none",
+            "glyph5": "none",
+            "glyph6": "none",
+            "glyph7": "none",
+            "glyph8": "none"
+        }
+    }
+}
