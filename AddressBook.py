@@ -323,7 +323,6 @@ glyphs that failed to load:\n{failed}""")
         global GLYPH_TYPES
         edit_window.deiconify()
         global current_displayed_glyphs
-        print(current_displayed_glyphs[id])
         test_button = gui.Button(edit_window, command=finish_edit)
         test_button.grid()
         buttons = {}
