@@ -27,7 +27,7 @@ def load_glyphs(path, folder, glyph_names):
     failed_to_load = []
 
     for glyph_name in glyph_names:
-        glyph_path = f'{path}Glyphs\{folder}\{glyph_name}.png'
+        glyph_path = f'{path}Glyphs\\{folder}\\{glyph_name}.png'
         if os.path.isfile(glyph_path):
             image = Image.open(glyph_path)
             image = image.resize((300, 300), Image.ANTIALIAS)
@@ -380,10 +380,11 @@ glyphs that failed to load:\n{failed}""")
                 displays[id][0].configure(
                     image=loaded_glyphs[gui.StringVar.get(
                         address_type_selected)][glyph])
-            except:
+            except KeyError:
                 stringvars[id].set('none')
                 displays[id][0].configure(image=none_image)
     update_display(current_displayed_glyphs)
+
 
 if __name__ == '__main__':
     setup()
