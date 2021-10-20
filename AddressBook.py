@@ -353,6 +353,27 @@ glyphs that failed to load:\n{failed}""")
             column += 1
         none_button.grid(row=row, column=column)
 
+        glyph_to_select = gui.StringVar(edit_window)
+        glyph_name_entry = gui.Entry(edit_window, textvariable=glyph_to_select,
+                                     bg="magenta2", width=15)
+        glyph_name_entry.grid(row=(row + 1), column=0)
+        glyph_name_entry_submit = gui.Button(
+            edit_window, text="Submit Glyph",
+            command=lambda: change_glyph_logic(
+                id, gui.StringVar.get(glyph_to_select)), background="red")
+
+        def update_submit_button(glyph_name, button):
+            if glyph_name.lower().capitalize() in GLYPH_TYPES[selected_type]:
+                button.configure(background="green")
+            else:
+                button.configure(background="red")
+
+        glyph_to_select.trace_add(
+            'write', lambda x, y, z: update_submit_button(
+                gui.StringVar.get(glyph_to_select), glyph_name_entry_submit))
+
+        glyph_name_entry_submit.grid(row=(row + 1), column=1)
+
     def finish_edit():
         for child in edit_window.winfo_children():
             child.destroy()
