@@ -190,15 +190,15 @@ glyphs that failed to load:\n{failed}""")
             filetypes=(('JSON files', '*.json'), ('All files', '*.*'))
         )
         entries = loaded_books[gui.StringVar.get(selected_book)]
-        data_to_write = {}
-        for entry_name, entry in entries.items():
-            data_to_write[entry_name] = dict(entry)
+        data_to_write = {
+            entry_name: dict(entry) for entry_name, entry in entries.items()
+        }
+
         if not book_path.endswith('.json'):
             book_path = f'{book_path}.json'
         with open(book_path, 'w') as book_file:
             json.dump(data_to_write, book_file, indent=4)
-        if True:
-            return 'succesfull', book_path
+        return 'succesfull', book_path
 
     save_button = gui.Button(root, text='Save', command=save_book)
     save_button.grid(row=0, column=1)
@@ -325,15 +325,19 @@ glyphs that failed to load:\n{failed}""")
         global current_displayed_glyphs
         test_button = gui.Button(edit_window, command=finish_edit)
         test_button.grid()
-        buttons = {}
         selected_type = gui.StringVar.get(address_type_selected)
-        for glyph in GLYPH_TYPES[selected_type]:
-            buttons[glyph] = gui.Button(edit_window,
-                                        image=smol_loaded_glyphs[
-                                            selected_type][glyph],
-                                        command=lambda glyph_name=glyph:
-                                            change_glyph_logic(id, glyph_name),
-                                            background='magenta2')
+        buttons = {
+            glyph: gui.Button(
+                edit_window,
+                image=smol_loaded_glyphs[selected_type][glyph],
+                command=lambda glyph_name=glyph: change_glyph_logic(
+                    id, glyph_name
+                ),
+                background='magenta2',
+            )
+            for glyph in GLYPH_TYPES[selected_type]
+        }
+
         for glyph_name, button in buttons.items():
             row, column = divmod(
                 GLYPH_TYPES[selected_type].index(glyph_name), 6)
@@ -342,7 +346,7 @@ glyphs that failed to load:\n{failed}""")
         none_button = gui.Button(edit_window, image=smol_none_image,
                                  background='magenta2',
                                  command=lambda: change_glyph_logic(id))
-        if column + 1 == 6:
+        if column == 5:
             row += 1
             column = 0
         else:
