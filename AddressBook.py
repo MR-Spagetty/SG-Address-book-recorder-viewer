@@ -360,13 +360,14 @@ glyphs that failed to load:\n{failed}""")
         glyph_name_entry_submit = gui.Button(
             edit_window, text="Submit Glyph",
             command=lambda: change_glyph_logic(
-                id, gui.StringVar.get(glyph_to_select)), background="red")
+                id, gui.StringVar.get(glyph_to_select).capitalize()),
+            background="red", state="disabled")
 
         def update_submit_button(glyph_name, button):
-            if glyph_name.lower().capitalize() in GLYPH_TYPES[selected_type]:
-                button.configure(background="green")
+            if glyph_name.capitalize() in GLYPH_TYPES[selected_type]:
+                button.configure(background="green2", state="normal")
             else:
-                button.configure(background="red")
+                button.configure(background="red", state="disabled")
 
         glyph_to_select.trace_add(
             'write', lambda x, y, z: update_submit_button(
