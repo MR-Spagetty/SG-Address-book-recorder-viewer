@@ -310,7 +310,6 @@ glyphs that failed to load:\n{failed}""")
 
     edit_window = gui.Toplevel(display_window)
     edit_window.withdraw()
-    edit_window.protocol("WM_DELETE_WINDOW", disable_event)
 
     def change_glyph_logic(id, glyph_name='none'):
         global current_displayed_glyphs
@@ -394,6 +393,8 @@ glyphs that failed to load:\n{failed}""")
         for child in edit_window.winfo_children():
             child.destroy()
         edit_window.withdraw()
+
+    edit_window.protocol("WM_DELETE_WINDOW", finish_edit)
 
     global displays
     displays = {}
