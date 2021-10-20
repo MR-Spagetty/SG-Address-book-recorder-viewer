@@ -357,16 +357,31 @@ glyphs that failed to load:\n{failed}""")
         glyph_name_entry = gui.Entry(edit_window, textvariable=glyph_to_select,
                                      bg="magenta2", width=15)
         glyph_name_entry.grid(row=(row + 1), column=0)
+
         glyph_name_entry_submit = gui.Button(
             edit_window, text="Submit Glyph",
             command=lambda: change_glyph_logic(
                 id, gui.StringVar.get(glyph_to_select).title()),
             background="red", state="disabled")
 
+        global glyph_valid
+        glyph_valid = False
+
+        def submit_via_enter(_):
+            global glyph_valid
+            if glyph_valid:
+                change_glyph_logic(id,
+                                   gui.StringVar.get(glyph_to_select).title())
+
+        glyph_name_entry.bind("<Return>", submit_via_enter)
+
         def update_submit_button(glyph_name, button):
+            global glyph_valid
             if glyph_name.title() in GLYPH_TYPES[selected_type]:
+                glyph_valid = True
                 button.configure(background="green2", state="normal")
             else:
+                glyph_valid = False
                 button.configure(background="red", state="disabled")
 
         glyph_to_select.trace_add(
