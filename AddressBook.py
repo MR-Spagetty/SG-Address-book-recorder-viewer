@@ -2,13 +2,20 @@
 # AddressBook.py
 
 import os
+import sys
 import tkinter as gui
 import tkinter.filedialog as filedialog
 from PIL import ImageTk, Image
 import json
 import re
 
-file_location = __file__.replace('AddressBook.py', '')
+if getattr(sys, 'frozen', False):
+    application_path = os.path.dirname(sys.executable)
+elif __file__:
+    application_path = os.path.dirname(__file__)
+
+file_location = os.path.dirname(os.path.abspath(__file__))
+print(file_location)
 
 
 def load_config():
@@ -24,11 +31,13 @@ def load_config():
     "large glyph size px": 300
     }
 }"""
-    global file_location
-    if not os.path.isfile(f'{file_location}\\AddresssBook.cfg'):
-        with open(f'{file_location}\\AddresssBook.cfg', 'w') as config_file:
+    global application_path
+    if not os.path.isfile(os.path.join(application_path, 'AddresssBook.cfg')):
+        with open(os.path.join(application_path,
+                               'AddresssBook.cfg'), 'w') as config_file:
             config_file.write(default_configs)
-    with open(f"{file_location}\\AddresssBook.cfg", 'r') as config_file:
+    with open(os.path.join(application_path,
+                           'AddresssBook.cfg'), 'r') as config_file:
         global configs
         config = config_file.read()
         config = ''.join(re.sub("#.*", "", config, flags=re.MULTILINE).split())
@@ -59,7 +68,7 @@ def load_glyphs(path, folder, glyph_names):
     large_size_px = configs['images']['largeglyphsizepx']
 
     for glyph_name in glyph_names:
-        glyph_path = f'{path}Glyphs\\{folder}\\{glyph_name}.png'
+        glyph_path = os.path.join(path, 'Glyphs', folder, f'{glyph_name}.png')
         if os.path.isfile(glyph_path):
             image = Image.open(glyph_path)
             image = image.resize((large_size_px, large_size_px),
@@ -135,7 +144,7 @@ glyphs that failed to load:\n{failed}""")
 
     global none_image
     global smol_none_image
-    image = Image.open(f'{file_location}Glyphs\\none.png')
+    image = Image.open(os.path.join(file_location, 'Glyphs', 'none.png'))
     image = image.resize((configs['images']['largeglyphsizepx'],
                           configs['images']['largeglyphsizepx']),
                          Image.ANTIALIAS)
@@ -393,7 +402,8 @@ glyphs that failed to load:\n{failed}""")
 
         glyph_to_select = gui.StringVar(edit_window)
         glyph_name_entry = gui.Entry(
-            edit_window, textvariable=glyph_to_select, bg="magenta2", width=2*int(divmod(configs['images']['smallglyphsizepx'], 7)[0]))
+            edit_window, textvariable=glyph_to_select, bg="magenta2",
+            width=2 * int(divmod(configs['images']['smallglyphsizepx'], 7)[0]))
         glyph_name_entry.grid(row=(row + 1), column=0, columnspan=2)
 
         glyph_name_entry_submit = gui.Button(
