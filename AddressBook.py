@@ -6,10 +6,39 @@ import tkinter as gui
 import tkinter.filedialog as filedialog
 from PIL import ImageTk, Image
 import json
+import re
+
+file_location = __file__.replace('AddressBook.py', '')
+
+
+def load_config():
+    default_configs = """{
+# when edited you must releanch hte program if it is running
+"images": {
+    # the width and height of the glyphs
+    # used in the edit window
+    "small glyph size px": 100,
+
+    # the width and height of the glyphs
+    # used in the display window
+    "large glyph size px": 300
+    }
+}"""
+    global file_location
+    if not os.path.isfile(f'{file_location}\\AddresssBook.cfg'):
+        with open(f'{file_location}\\AddresssBook.cfg', 'w') as config_file:
+            config_file.write(default_configs)
+    with open(f"{file_location}\\AddresssBook.cfg", 'r') as config_file:
+        global configs
+        config = config_file.read()
+        config = ''.join(re.sub("#.*", "", config, flags=re.MULTILINE).split())
+        configs = json.loads(config)
 
 
 def load_glyphs(path, folder, glyph_names):
-    """Loads a seris of glyphs and returns a 300px^2 and a 100px^2
+    """Loads a seris of glyphs and returns a
+    <large glyph sizedefined in config>px^2 and a
+    <small glyph sizedefined in config>px^2
     version aswell as a list of those that failed to load
 
     Args:
@@ -22,16 +51,21 @@ def load_glyphs(path, folder, glyph_names):
         dict: smol version of previous
         list: list of glyph names that failed to load
     """
+    global configs
     glyphs = {}
     smol_glyphs = {}
     failed_to_load = []
+    smol_size_px = configs['images']['smallglyphsizepx']
+    large_size_px = configs['images']['largeglyphsizepx']
 
     for glyph_name in glyph_names:
         glyph_path = f'{path}Glyphs\\{folder}\\{glyph_name}.png'
         if os.path.isfile(glyph_path):
             image = Image.open(glyph_path)
-            image = image.resize((300, 300), Image.ANTIALIAS)
-            smol_image = image.resize((100, 100), Image.ANTIALIAS)
+            image = image.resize((large_size_px, large_size_px),
+                                 Image.ANTIALIAS)
+            smol_image = image.resize((smol_size_px, smol_size_px),
+                                      Image.ANTIALIAS)
             glyphs[glyph_name] = ImageTk.PhotoImage(image)
             smol_glyphs[glyph_name] = ImageTk.PhotoImage(smol_image)
         else:
@@ -42,12 +76,13 @@ def load_glyphs(path, folder, glyph_names):
 def setup():
     """sets up the GUI for the program
     """
+    global configs
 
     def disable_event():
         pass
 
     global file_location
-    file_location = __file__.replace('AddressBook.py', '')
+
     global root
     root = gui.Tk()
     root.title('Address book')
@@ -101,9 +136,13 @@ glyphs that failed to load:\n{failed}""")
     global none_image
     global smol_none_image
     image = Image.open(f'{file_location}Glyphs\\none.png')
-    image = image.resize((300, 300), Image.ANTIALIAS)
+    image = image.resize((configs['images']['largeglyphsizepx'],
+                          configs['images']['largeglyphsizepx']),
+                         Image.ANTIALIAS)
     none_image = ImageTk.PhotoImage(image)
-    smol_image = image.resize((100, 100), Image.ANTIALIAS)
+    smol_image = image.resize((configs['images']['smallglyphsizepx'],
+                               configs['images']['smallglyphsizepx']),
+                              Image.ANTIALIAS)
     smol_none_image = ImageTk.PhotoImage(smol_image)
 
     global current_displayed_glyphs
@@ -353,12 +392,12 @@ glyphs that failed to load:\n{failed}""")
         none_button.grid(row=row, column=column)
 
         glyph_to_select = gui.StringVar(edit_window)
-        glyph_name_entry = gui.Entry(edit_window, textvariable=glyph_to_select,
-                                     bg="magenta2", width=15)
-        glyph_name_entry.grid(row=(row + 1), column=0)
+        glyph_name_entry = gui.Entry(
+            edit_window, textvariable=glyph_to_select, bg="magenta2", width=2*int(divmod(configs['images']['smallglyphsizepx'], 7)[0]))
+        glyph_name_entry.grid(row=(row + 1), column=0, columnspan=2)
 
         glyph_name_entry_submit = gui.Button(
-            edit_window, text="Submit Glyph",
+            edit_window, text="→",
             command=lambda: change_glyph_logic(
                 id, gui.StringVar.get(glyph_to_select).title()),
             background="red", state="disabled")
@@ -387,7 +426,7 @@ glyphs that failed to load:\n{failed}""")
             'write', lambda x, y, z: update_submit_button(
                 gui.StringVar.get(glyph_to_select), glyph_name_entry_submit))
 
-        glyph_name_entry_submit.grid(row=(row + 1), column=1)
+        glyph_name_entry_submit.grid(row=(row + 1), column=2)
 
     def finish_edit():
         for child in edit_window.winfo_children():
@@ -429,5 +468,6 @@ glyphs that failed to load:\n{failed}""")
 
 
 if __name__ == '__main__':
+    load_config()
     setup()
     root.mainloop()
