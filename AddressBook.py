@@ -3,11 +3,30 @@
 
 import os
 import sys
-import tkinter as gui
-import tkinter.filedialog as filedialog
-from PIL import ImageTk, Image
-import json
-import re
+if sys.version_info < (3, 10):
+    raise Exception('to run this programe you are required to use python 3.10\
+or greater')
+try:
+    import tkinter as gui
+    import tkinter.filedialog as filedialog
+except ImportError:
+    raise ImportError('to run this program you need the tkinter module')
+
+try:
+    from PIL import ImageTk, Image
+except ImportError:
+    raise ImportError('to run this program you need the PIL module')
+
+try:
+    import json
+except ImportError:
+    raise ImportError('to run this program you need the json module')
+
+try:
+    import re
+except ImportError:
+    raise ImportError('to run this program you need the re module')
+
 
 if getattr(sys, 'frozen', False):
     application_path = os.path.dirname(sys.executable)
@@ -133,7 +152,8 @@ def setup():
 
     for folder, glyph_type in GLYPH_TYPES.items():
         normal, smol, failed = load_glyphs(file_location, folder, glyph_type)
-        print(f"""{len(normal)} glyphs were succesfully loaded
+        if not getattr(sys, 'frozen', False):
+            print(f"""{len(normal)} glyphs were succesfully loaded
 {len(failed)} glyphs failed to load
 glyphs that failed to load:\n{failed}""")
         loaded_glyphs[folder] = normal
@@ -163,7 +183,7 @@ glyphs that failed to load:\n{failed}""")
     def load_book():
         book_path = filedialog.askopenfilename(
             filetypes=(("JSON files", "*.json"), ("All files", "*.*")))
-        book_name = book_path.split('/')[-1]
+        book_name = os.path.split(book_path)[-1]
         if os.path.isfile(book_path):
             with open(book_path, 'r') as book_file:
                 book = json.load(book_file)
@@ -172,8 +192,13 @@ glyphs that failed to load:\n{failed}""")
                 book_items[name] = {}
                 for address_type, address in entry.items():
                     book_items[name][address_type] = {}
-                    for item, value in address.items():
-                        book_items[name][address_type][item] = value
+                    if type(address) is dict:
+                        for item, value in address.items():
+                            book_items[name][address_type][item] = value
+                    else:
+                        book_items[name][address_type] = address
+                if 'IDC' not in entry:
+                    book_items[name]['IDC'] = ''
             return 'successfull', book_items, book_name
         else:
             book_name_textvar.set('Book Name: ')
@@ -264,10 +289,11 @@ glyphs that failed to load:\n{failed}""")
         selected_type = gui.StringVar.get(address_type_selected).lower()
         new_glyphs = []
         book = gui.StringVar.get(selected_book)
-        adderss_name = gui.StringVar.get(selected_address)
+        address_name = gui.StringVar.get(selected_address)
         try:
-            new_glyphs = loaded_books[book][adderss_name][selected_type]
+            new_glyphs = loaded_books[book][address_name][selected_type]
             current_displayed_glyphs = new_glyphs
+            idc.set(loaded_books[book][address_name]['IDC'])
             update_display(current_displayed_glyphs)
         except KeyError:
             pass
@@ -303,7 +329,8 @@ glyphs that failed to load:\n{failed}""")
                 "glyph6": "none",
                 "glyph7": "none",
                 "glyph8": "none"
-            }
+            },
+            'IDC': ''
         }
         new_item_window.title('New address')
 
@@ -475,6 +502,50 @@ glyphs that failed to load:\n{failed}""")
                 stringvars[id].set('none')
                 displays[id][0].configure(image=none_image)
     update_display(current_displayed_glyphs)
+
+    IDC_window = gui.Toplevel(display_window)
+    IDC_window.title('IDC')
+    IDC_window.protocol("WM_DELETE_WINDOW", disable_event)
+
+    global idc
+    idc = gui.StringVar(IDC_window)
+    IDC_entry = gui.Entry(IDC_window, textvariable=idc,
+                          width=3 * int(divmod(configs['images'][
+                              'smallglyphsizepx'], 7)[0]),
+                          state='readonly')
+    IDC_entry.grid(row=0, column=0, columnspan=3)
+
+    def IDC_button_logic(button_id):
+        if type(button_id) is int:
+            if len(idc.get()) < 9:
+                idc.set(f'{idc.get()}{button_id}')
+        else:
+            match button_id:
+                case '<':
+                    if len(idc.get()) > 1:
+                        idc.set(idc.get()[0:-1])
+                    else:
+                        idc.set('')
+                case 'c':
+                    idc.set('')
+
+    button_order = {7: (0, 1), 8: (1, 1), 9: (2, 1),
+                    4: (0, 2), 5: (1, 2), 6: (2, 2),
+                    1: (0, 3), 2: (1, 3), 3: (2, 3),
+                    '<': (0, 4), 0: (1, 4), 'c': (2, 4)}
+    IDC_buttons = {}
+    for button_id, coordinates in button_order.items():
+        IDC_buttons[button_id] = gui.Button(
+            IDC_window, text=button_id,
+            command=lambda id=button_id: IDC_button_logic(id),
+            # width=2 * int(divmod(configs['images'][
+            #     'smallglyphsizepx'], 7)[0]),
+            # height=int(int(divmod(configs['images'][
+            #     'smallglyphsizepx'], 7)[0])),
+            font=('Ariel', int(4 * int(divmod(configs['images'][
+                'smallglyphsizepx'], 7)[0])))
+        ).grid(column=coordinates[0], row=coordinates[1])
+
 
 
 if __name__ == '__main__':
