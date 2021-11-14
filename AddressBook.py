@@ -538,10 +538,6 @@ glyphs that failed to load:\n{failed}""")
         IDC_buttons[button_id] = gui.Button(
             IDC_window, text=button_id,
             command=lambda id=button_id: IDC_button_logic(id),
-            # width=2 * int(divmod(configs['images'][
-            #     'smallglyphsizepx'], 7)[0]),
-            # height=int(int(divmod(configs['images'][
-            #     'smallglyphsizepx'], 7)[0])),
             font=('Ariel', int(4 * int(divmod(configs['images'][
                 'smallglyphsizepx'], 7)[0])))
         ).grid(column=coordinates[0], row=coordinates[1])
