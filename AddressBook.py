@@ -286,7 +286,8 @@ glyphs that failed to load:\n{failed}""")
             if 'IDC' not in address:
                 address['IDC'] = ''
             global loaded_books
-            loaded_books[selected_book.get()][address_name] = address.copy()
+            loaded_books[selected_book.get()][address_name] = address
+            address_menu_update(1, 2, 3)
 
     def export_address():
         address_path = filedialog.asksaveasfilename(
