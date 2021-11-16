@@ -276,15 +276,60 @@ glyphs that failed to load:\n{failed}""")
     save_button = gui.Button(root, text='Save', command=save_book)
     save_button.grid(row=0, column=1)
 
+    def import_address():
+        address_path = filedialog.askopenfilename(
+            filetypes=(("JSON files", "*.json"), ("All files", "*.*")))
+        address_name = os.path.split(address_path)[-1][:-5]
+        if os.path.isfile(address_path):
+            with open(address_path, 'r') as address_file:
+                address = json.load(address_file)
+            if 'IDC' not in address:
+                address['IDC'] = ''
+            global loaded_books
+            loaded_books[selected_book.get()][address_name] = address.copy()
+
+    def export_address():
+        address_path = filedialog.asksaveasfilename(
+            filetypes=(('JSON files', '*.json'), ('All files', '*.*'))
+        )
+
+        data_to_write = loaded_books[selected_book.get()][
+            selected_address.get()]
+
+        if not address_path.endswith('.json'):
+            book_path = f'{address_path}.json'
+        with open(book_path, 'w') as book_file:
+            json.dump(data_to_write, book_file, indent=4)
+        return 'succesfull', book_path
+
+    address_export_button = gui.Button(root, text="Export address",
+                                       command=export_address, state='disabled'
+                                       )
+    address_import_button = gui.Button(root, text="Import address",
+                                       command=import_address, state='disabled'
+                                       )
+    address_import_button.grid(row=3, column=0)
+    address_export_button.grid(row=3, column=2)
+
     def address_menu_update(x, y, z):
+        if selected_book.get():
+            address_import_button.configure(state='normal')
+        else:
+            address_import_button.configure(state='disabled')
         addresses_menu = gui.Menu(addresses_menu_button, tearoff=0)
         addresses_menu_button['menu'] = addresses_menu
         for address in loaded_books[gui.StringVar.get(selected_book)]:
             addresses_menu.add_radiobutton(label=address,
                                            variable=selected_address)
+        selected_address.set('')
+        change_displayed(1, 2, 3)
     selected_book.trace_add('write', address_menu_update)
 
     def change_displayed(x, y, z):
+        if selected_address.get():
+            address_export_button.configure(state='normal')
+        else:
+            address_export_button.configure(state='disabled')
         global current_displayed_glyphs
         selected_type = gui.StringVar.get(address_type_selected).lower()
         new_glyphs = []
@@ -511,7 +556,10 @@ glyphs that failed to load:\n{failed}""")
         global loaded_books
         book = selected_book.get()
         address_name = selected_address.get()
-        loaded_books[book][address_name]['IDC'] = idc.get()
+        try:
+            loaded_books[book][address_name]['IDC'] = idc.get()
+        except KeyError:
+            pass
 
     global idc
     idc = gui.StringVar(IDC_window)
