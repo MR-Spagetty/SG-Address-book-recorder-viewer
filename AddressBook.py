@@ -507,6 +507,12 @@ glyphs that failed to load:\n{failed}""")
     IDC_window.title('IDC')
     IDC_window.protocol("WM_DELETE_WINDOW", disable_event)
 
+    def edit_entry_idc():
+        global loaded_books
+        book = selected_book.get()
+        address_name = selected_address.get()
+        loaded_books[book][address_name]['IDC'] = idc.get()
+
     global idc
     idc = gui.StringVar(IDC_window)
     IDC_entry = gui.Entry(IDC_window, textvariable=idc,
@@ -514,6 +520,7 @@ glyphs that failed to load:\n{failed}""")
                               'smallglyphsizepx'], 7)[0]),
                           state='readonly')
     IDC_entry.grid(row=0, column=0, columnspan=3)
+    idc.trace_add('write', lambda x, y, z: edit_entry_idc())
 
     def IDC_button_logic(button_id):
         if type(button_id) is int:
@@ -541,7 +548,6 @@ glyphs that failed to load:\n{failed}""")
             font=('Ariel', int(4 * int(divmod(configs['images'][
                 'smallglyphsizepx'], 7)[0])))
         ).grid(column=coordinates[0], row=coordinates[1])
-
 
 
 if __name__ == '__main__':
