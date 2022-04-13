@@ -36,7 +36,7 @@ elif __file__:
     application_path = os.path.dirname(__file__)
 
 file_location = os.path.dirname(os.path.abspath(__file__))
-print(file_location)
+print('file location:', file_location)
 
 
 def load_config():
@@ -48,15 +48,30 @@ def load_config():
     # Theme of the app one of: ["dark", "light", "custom"]
     "theme": "dark",
     # Custom theme colours
-    "custom": {
+    "custom theme": {
         # for allowed colours see PySide6 Documentation
         "main window background colour": "Dark-Gray",
         "main window menu bar colour": "Gray",
         "displays background colour": "Gray",
         # Glyphs colour is an rgb value
-        "glyphs colour": (0, 0, 0),
-        "edit displays background colour": "Gray",
-    }
+        "glyphs colour": [0, 0, 0],
+        "edit displays background colour": "Gray"
+    },
+    # weather or not to automatically save changes
+    "auto save": true,
+    # when to automatically save can be one of:
+    # ["change-made", "switch-book", "on-close", "switch-or-close"]
+    "auto save time": "switch-or-close",
+    # Display arrangements (g is the location of a glyph)
+    # 1:
+    # G G G
+    # G G G
+    # G   G
+    # 2:
+    # G G G
+    # G G G
+    #  G G
+    "display arrangement": 1
 },
 "images": {
     # the width and height of the glyphs
@@ -78,6 +93,9 @@ def load_config():
         config = ''.join(re.sub("#.*", "", config, flags=re.MULTILINE).split())
         config = re.sub("-", " ", config, flags=re.MULTILINE)
         configs = json.loads(config)
+        configs['app']['customtheme']['glyphscolour'] = tuple(
+            configs['app']['customtheme']['glyphscolour'])
+        print('config:', configs)
 
 
 def load_glyphs(path, folder, glyph_names):
@@ -131,7 +149,10 @@ class MainWindow(QMainWindow):
                                       configs["images"]["smallglyphsizepx"])
 
         self.loaded_books = {}
+        self.books_path_list = {}
+        self.inform_selected_book = QLabel("None")
         self.selected_book = ""
+        self.inform_selected_address = QLabel("None")
         self.selected_address = ""
 
         self.address_displays = {}
@@ -155,6 +176,44 @@ class MainWindow(QMainWindow):
         self.address_menu.addAction('Please Select a book')
 
         self.generate_layout()
+
+    def save(self, book_name):
+        unknown_path = False
+        try:
+            book_path = self.books_path_list[book_name]
+        except KeyError:
+            unknown_path = True
+        if unknown_path or not os.path.isfile(book_path):
+            book_path = QFileDialog.getSaveFileName(
+                self, "Save Book File", application_path, "JSON files (*.json)"
+            )[0]
+        entries = self.loaded_books[self.selected_book]
+        data_to_write = {
+            entry_name: dict(entry) for entry_name, entry in entries.items()
+        }
+        with open(book_path, 'w') as book_file:
+            json.dump(data_to_write, book_file, indent=4)
+        self.books_path_list[self.selected_book] = book_path
+
+    def auto_save(self, source):
+        if configs['app']['autosave']:
+            if source == 'on close' and\
+                    configs['app']['autosavetime'] == 'on close':
+                for book_name in self.loaded_books:
+                    self.save(book_name)
+            elif source == configs['app']['autosavetime']:
+                self.save(self.selected_book)
+            elif configs['app']['autosavetime'] == "switch or close" and\
+                    source in ["on close", 'switch book']:
+                if source == 'on close':
+                    for book_name in self.loaded_books:
+                        self.save(book_name)
+                else:
+                    self.save(self.selected_book)
+
+    def exit_handler(self, *args):
+        self.auto_save("on close")
+        return args[0]
 
     def load_glyphs(self):
         MW_GLYPHS_LIST = ['Crater', 'Virgo', 'Bootes', 'Centaurus', 'Libra',
@@ -208,7 +267,8 @@ glyphs that failed to load:\n{failed}""")
         information_widget = QWidget()
         information_widget.setLayout(information_layout)
         general_layout.addWidget(information_widget)
-        information_layout.addRow("Book Name", QWidget())
+        information_layout.addRow("Selected Book: ", self.inform_selected_book)
+        information_layout.addRow("Selected Address: ", self.inform_selected_address)
 
         address_tabs = QTabWidget()
         mw_address_tab = QWidget()
@@ -243,7 +303,8 @@ glyphs that failed to load:\n{failed}""")
         mw_row_2.addWidget(self.address_displays['MW'][5])
 
         mw_row_3.addWidget(self.address_displays['MW'][6])
-        mw_row_3.addWidget(QWidget())
+        if configs['app']['displayarrangement'] == 1:
+            mw_row_3.addWidget(QWidget())
         mw_row_3.addWidget(self.address_displays['MW'][7])
 
         peg_address_tab = QWidget()
@@ -274,7 +335,8 @@ glyphs that failed to load:\n{failed}""")
         peg_row_2.addWidget(self.address_displays['PEG'][4])
         peg_row_2.addWidget(self.address_displays['PEG'][5])
         peg_row_3.addWidget(self.address_displays['PEG'][6])
-        peg_row_3.addWidget(QWidget())
+        if configs['app']['displayarrangement'] == 1:
+            peg_row_3.addWidget(QWidget())
         peg_row_3.addWidget(self.address_displays['PEG'][7])
 
         uni_address_tab = QWidget()
@@ -306,7 +368,8 @@ glyphs that failed to load:\n{failed}""")
         uni_row_2.addWidget(self.address_displays['UNI'][4])
         uni_row_2.addWidget(self.address_displays['UNI'][5])
         uni_row_3.addWidget(self.address_displays['UNI'][6])
-        uni_row_3.addWidget(QWidget())
+        if configs['app']['displayarrangement'] == 1:
+            uni_row_3.addWidget(QWidget())
         uni_row_3.addWidget(self.address_displays['UNI'][7])
 
         address_tabs.addTab(mw_address_tab, 'MW')
@@ -342,6 +405,7 @@ glyphs that failed to load:\n{failed}""")
                         book_items[name][address_type] = address
                 if 'IDC' not in entry:
                     book_items[name]['IDC'] = ''
+            self.books_path_list[book_name] = book_path
             self.update_book_list('successfull', book_items, book_name)
         else:
             self.update_book_list('failed - file not exist', [], None)
@@ -362,7 +426,10 @@ glyphs that failed to load:\n{failed}""")
                 )
 
     def update_address_list(self, book_name):
+        if self.selected_book != "":
+            self.auto_save("switch book")
         self.selected_book = book_name
+        self.inform_selected_book.setText(book_name)
         self.selected_address = ""
         for add_type in ['MW', 'PEG', 'UNI']:
             for i in range(8):
@@ -380,6 +447,7 @@ glyphs that failed to load:\n{failed}""")
 
     def onAddressClick(self, address_name):
         self.selected_address = address_name
+        self.inform_selected_address.setText(address_name)
         for add_type in ['MW', 'PEG', 'UNI']:
             for i in range(8):
                 self.address_displays[add_type][i].setIcon(
@@ -400,10 +468,11 @@ glyphs that failed to load:\n{failed}""")
             book_path = f'{book_path}.json'
         with open(book_path, 'w') as book_file:
             json.dump(data_to_write, book_file, indent=4)
+        self.books_path_list[self.selected_book] = book_path
         return 'succesfull', book_path
 
 
 app = QApplication(sys.argv)
 w = MainWindow()
 w.show()
-app.exec()
+sys.exit(w.exit_handler(app.exec()))
