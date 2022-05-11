@@ -435,18 +435,22 @@ glyphs that failed to load:\n{failed}""")
         self.IDC_entry = QLineEdit()
         self.IDC_entry.textChanged.connect(self.onIDCEdit)
         IDC_layout.addRow('IDC:', self.IDC_entry)
+        self.IDC_entry.setFixedWidth(self.large_glyphs_size.width())
 
         self.IDC_oc_broadcastable = QCheckBox()
         self.IDC_oc_broadcastable.clicked.connect(self.onIDCBroadcastableClick)
         IDC_layout.addRow('OC Broadcastable:', self.IDC_oc_broadcastable)
+        self.IDC_oc_broadcastable.setFixedWidth(self.large_glyphs_size.width())
 
         self.IDC_oc_port = QLineEdit()
         self.IDC_oc_port.textChanged.connect(self.onIDCOCPortEdit)
         IDC_layout.addRow('OC Port:', self.IDC_oc_port)
+        self.IDC_oc_port.setFixedWidth(self.large_glyphs_size.width())
 
         self.IDC_oc_address = QLineEdit()
         self.IDC_oc_address.textChanged.connect(self.onIDCOCCompAddress)
         IDC_layout.addRow('OC Address:', self.IDC_oc_address)
+        self.IDC_oc_address.setFixedWidth(self.large_glyphs_size.width())
 
     def onIDCEdit(self, *args):
         if self.selected_address:
