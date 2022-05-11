@@ -11,7 +11,9 @@ try:
      QApplication, QMainWindow, QWidget,
      QHBoxLayout, QVBoxLayout, QFormLayout,
      QLabel, QToolBar, QStatusBar, QFileDialog,
-     QMenu, QToolButton, QTabWidget, QPushButton
+     QMenu, QToolButton, QTabWidget, QPushButton,
+     QDialog, QGridLayout, QInputDialog, QLineEdit,
+     QCheckBox
     )
     from PySide6.QtGui import QAction, QIcon, QImage, QPixmap
     from PySide6.QtCore import Qt, QSize
@@ -114,6 +116,7 @@ def load_glyphs(path, folder, glyph_names):
         dict: smol version of previous
         list: list of glyph names that failed to load
     """
+    NONE_GLYPH_PATH = os.path.join(path, 'Glyphs', 'none.png')
     global configs
     glyphs = {}
     smol_glyphs = {}
@@ -132,6 +135,12 @@ def load_glyphs(path, folder, glyph_names):
                 )
         else:
             failed_to_load.append(glyph_name)
+    glyphs['none'] = QPixmap(NONE_GLYPH_PATH).scaled(
+        large_size_px, large_size_px, Qt.KeepAspectRatio
+        )
+    smol_glyphs['none'] = QPixmap(NONE_GLYPH_PATH).scaled(
+        smol_size_px, smol_size_px, Qt.KeepAspectRatio
+        )
     return glyphs, smol_glyphs, failed_to_load
 
 
@@ -154,20 +163,51 @@ class MainWindow(QMainWindow):
         self.selected_book = ""
         self.inform_selected_address = QLabel("None")
         self.selected_address = ""
+        self.inform_debug = QLabel("")
+
+        self.glyph_dialogues = {
+            'MW': GlyphEditDialog(self, 'MW'),
+            'PEG': GlyphEditDialog(self, 'PEG'),
+            'UNI': GlyphEditDialog(self, 'UNI')
+        }
 
         self.address_displays = {}
 
         toolbar = self.menuBar()
 
+        file_menu = toolbar.addMenu("&File")
+
+        self.save_book = QAction("Save Book", self)
+        self.save_book.setStatusTip("Saves an address book")
+        self.save_book.triggered.connect(self.onSaveBookClick)
+        # self.save_book.setDisabled(True)
+        file_menu.addAction(self.save_book)
+
+        self.save_book_as = QAction("Save Book As", self)
+        self.save_book_as.setStatusTip(
+            "Saves an address book to a specified file")
+        self.save_book_as.triggered.connect(self.onSaveBookAsClick)
+        # self.save_book_as.setDisabled(True)
+        file_menu.addAction(self.save_book_as)
+
         load_book = QAction("Load Book", self)
         load_book.setStatusTip("Loads an address book")
         load_book.triggered.connect(self.onLoadBookClick)
-        toolbar.addAction(load_book)
+        file_menu.addAction(load_book)
 
-        save_book = QAction("Save Book", self)
-        save_book.setStatusTip("Saves an address book")
-        save_book.triggered.connect(self.onSaveBookClick)
-        toolbar.addAction(save_book)
+        file_menu.addSeparator()
+
+        new_book = QAction("New Book", self)
+        new_book.setStatusTip("Creates a new address book in the program")
+        new_book.triggered.connect(self.onNewBookClick)
+        file_menu.addAction(new_book)
+
+        self.new_address = QAction("New Address", self)
+        self.new_address.setStatusTip(
+            "Creates a new address in the current book")
+        self.new_address.triggered.connect(self.onNewAddressClick)
+        # self.new_address.setDisabled(True)
+        file_menu.addAction(self.new_address)
 
         self.books_menu = toolbar.addMenu("&Books")
         self.books_menu.addAction('There are no books Loaded')
@@ -187,13 +227,7 @@ class MainWindow(QMainWindow):
             book_path = QFileDialog.getSaveFileName(
                 self, "Save Book File", application_path, "JSON files (*.json)"
             )[0]
-        entries = self.loaded_books[self.selected_book]
-        data_to_write = {
-            entry_name: dict(entry) for entry_name, entry in entries.items()
-        }
-        with open(book_path, 'w') as book_file:
-            json.dump(data_to_write, book_file, indent=4)
-        self.books_path_list[self.selected_book] = book_path
+        return self.save_book_to_file(book_path)
 
     def auto_save(self, source):
         if configs['app']['autosave']:
@@ -267,8 +301,12 @@ glyphs that failed to load:\n{failed}""")
         information_widget = QWidget()
         information_widget.setLayout(information_layout)
         general_layout.addWidget(information_widget)
-        information_layout.addRow("Selected Book: ", self.inform_selected_book)
-        information_layout.addRow("Selected Address: ", self.inform_selected_address)
+        information_layout.addRow("Selected Book: ",
+                                  self.inform_selected_book)
+        information_layout.addRow("Selected Address: ",
+                                  self.inform_selected_address)
+        # information_layout.addRow("Debug: ",
+        #                           self.inform_debug)
 
         address_tabs = QTabWidget()
         mw_address_tab = QWidget()
@@ -382,8 +420,63 @@ glyphs that failed to load:\n{failed}""")
                     self.large_glyphs_size)
                 self.address_displays[add_type][i].setIconSize(
                     self.large_glyphs_size)
+                action = QAction()
+                self.address_displays[add_type][i].clicked.connect(
+                    lambda s=False, glyph_pos=i, add_type=add_type:
+                        self.onGlyphDisplayClick(glyph_pos, add_type))
 
         general_layout.addWidget(address_tabs)
+
+        IDC_widget = QWidget()
+        IDC_layout = QFormLayout()
+        IDC_widget.setLayout(IDC_layout)
+        general_layout.addWidget(IDC_widget)
+
+        self.IDC_entry = QLineEdit()
+        self.IDC_entry.textChanged.connect(self.onIDCEdit)
+        IDC_layout.addRow('IDC:', self.IDC_entry)
+
+        self.IDC_oc_broadcastable = QCheckBox()
+        self.IDC_oc_broadcastable.clicked.connect(self.onIDCBroadcastableClick)
+        IDC_layout.addRow('OC Broadcastable:', self.IDC_oc_broadcastable)
+
+        self.IDC_oc_port = QLineEdit()
+        self.IDC_oc_port.textChanged.connect(self.onIDCOCPortEdit)
+        IDC_layout.addRow('OC Port:', self.IDC_oc_port)
+
+        self.IDC_oc_address = QLineEdit()
+        self.IDC_oc_address.textChanged.connect(self.onIDCOCCompAddress)
+        IDC_layout.addRow('OC Address:', self.IDC_oc_address)
+
+    def onIDCEdit(self, *args):
+        if self.selected_address:
+            self.loaded_books[self.selected_book][
+                self.selected_address]["IDC"][
+                    "code"] = self.IDC_entry.text()
+
+    def onIDCBroadcastableClick(self, checked):
+        if self.selected_address:
+            self.loaded_books[self.selected_book][
+                self.selected_address]["IDC"][
+                    "OC broadcastable"] = checked
+
+    def onIDCOCPortEdit(self, *args):
+        if self.selected_address:
+            self.loaded_books[self.selected_book][
+                self.selected_address]["IDC"][
+                    "OC port"] = self.IDC_oc_port.text()
+
+    def onIDCOCCompAddress(self, *args):
+        if self.selected_address:
+            self.loaded_books[self.selected_book][
+                self.selected_address]["IDC"][
+                    "component address"] = self.IDC_oc_address.text()
+
+    def onGlyphDisplayClick(self, glyph_pos, glyph_type):
+        self.inform_debug.setText(f"{glyph_pos, glyph_type}")
+        self.glyph_dialogues[glyph_type].setWindowTitle(
+            f"{glyph_type}: {glyph_pos}")
+        self.glyph_dialogues[glyph_type].exec()
 
     def onLoadBookClick(self, s):
         book_path = QFileDialog.getOpenFileName(
@@ -393,27 +486,40 @@ glyphs that failed to load:\n{failed}""")
         if os.path.isfile(book_path):
             with open(book_path, 'r') as book_file:
                 book = json.load(book_file)
+            if '_BOOK_NAME' in book:
+                book_name = book['_BOOK_NAME']
+                # del book['_BOOK_NAME']
             book_items = {}
             for name, entry in book.items():
-                book_items[name] = {}
-                for address_type, address in entry.items():
-                    book_items[name][address_type] = {}
-                    if type(address) is dict:
-                        for item, value in address.items():
-                            book_items[name][address_type][item] = value
-                    else:
-                        book_items[name][address_type] = address
-                if 'IDC' not in entry:
-                    book_items[name]['IDC'] = ''
+                try:
+                    book_items[name] = {}
+                    for address_type, address in entry.items():
+                        book_items[name][address_type] = {}
+                        if type(address) is dict:
+                            for item, value in address.items():
+                                book_items[name][address_type][item] = value
+                        else:
+                            book_items[name][address_type] = address
+                    if 'IDC' not in entry:
+                        book_items[name]['IDC'] = ''
+                    if type(book_items[name]['IDC']) is str:
+                        book_items[name]['IDC'] = {
+                            'code': book_items[name]["IDC"],
+                            "OC broadcastable": False,
+                            'OC port': '',
+                            'component address': ''
+                        }
+                except AttributeError:
+                    if type(entry) is str:
+                        book_items[name] = entry
             self.books_path_list[book_name] = book_path
-            self.update_book_list('successfull', book_items, book_name)
-        else:
-            self.update_book_list('failed - file not exist', [], None)
+            self.loaded_books[book_name] = book_items
+            self.update_book_list()
+            # print("succesfull")
+        elif book_path:
+            print('failed - file not exist')
 
-    def update_book_list(self, status, book_items, book_name):
-        if status != 'successfull':
-            return False
-        self.loaded_books[book_name] = book_items
+    def update_book_list(self):
         self.books_menu.clear()
         actions = {}
         for book_name in self.loaded_books:
@@ -425,11 +531,21 @@ glyphs that failed to load:\n{failed}""")
                     self.update_address_list(book_name)
                 )
 
+    def onNewBookClick(self, s):
+        text = QInputDialog.getText(self, "New Book", "Book Name:",
+                                    QLineEdit.Normal)
+        if text[0] and text[1]:
+            self.loaded_books[text[0]] = {
+                '_BOOK_NAME': text[0],
+            }
+            self.update_book_list()
+
     def update_address_list(self, book_name):
         if self.selected_book != "":
             self.auto_save("switch book")
         self.selected_book = book_name
         self.inform_selected_book.setText(book_name)
+        self.inform_selected_address.setText("None")
         self.selected_address = ""
         for add_type in ['MW', 'PEG', 'UNI']:
             for i in range(8):
@@ -437,13 +553,33 @@ glyphs that failed to load:\n{failed}""")
         self.address_menu.clear()
         actions = {}
         for address_name in self.loaded_books[book_name]:
-            actions[address_name] = QAction(address_name, self)
-            self.address_menu.addAction(actions[address_name])
-            s = False  # wierd Qt thing
-            actions[address_name].triggered.connect(
-                lambda s=s, address_name=address_name:
-                    self.onAddressClick(address_name)
-                )
+            if address_name != '_BOOK_NAME':
+                actions[address_name] = QAction(address_name, self)
+                self.address_menu.addAction(actions[address_name])
+                s = False  # wierd Qt thing
+                actions[address_name].triggered.connect(
+                    lambda s=s, address_name=address_name:
+                        self.onAddressClick(address_name)
+                    )
+
+    def onNewAddressClick(self, s):
+        if self.selected_book:
+            text = QInputDialog.getText(self, "New Address", "Address Name:",
+                                        QLineEdit.Normal)
+            if text[0] and text[1]:
+                TEMPLATE = {
+                    "mw": {},
+                    "peg": {},
+                    "uni": {},
+                    'IDC': {
+                        'code': '',
+                        "OC broadcastable": False,
+                        'OC port': '',
+                        'component address': ''
+                    }
+                }
+                self.loaded_books[self.selected_book][text[0]] = dict(TEMPLATE)
+                self.update_address_list(self.selected_book)
 
     def onAddressClick(self, address_name):
         self.selected_address = address_name
@@ -454,16 +590,54 @@ glyphs that failed to load:\n{failed}""")
                     self.loaded_glyphs['norm'][add_type][
                         self.loaded_books[self.selected_book][address_name][
                             add_type.lower()][f'glyph{i+1}']])
+        self.IDC_entry.setText(self.loaded_books[self.selected_book][
+            self.selected_address]["IDC"]["code"])
+        self.IDC_oc_broadcastable.setChecked(
+            self.loaded_books[self.selected_book][self.selected_address][
+                "IDC"]["OC broadcastable"])
+        self.IDC_oc_port.setText(self.loaded_books[self.selected_book][
+            self.selected_address]["IDC"]["OC port"])
+        self.IDC_oc_address.setText(self.loaded_books[self.selected_book][
+            self.selected_address]["IDC"]["component address"])
 
     def onSaveBookClick(self, s):
-        book_path = QFileDialog.getSaveFileName(
-            self, "Save Book File", application_path, "JSON files (*.json)"
-            )[0]
-        entries = self.loaded_books[self.selected_book]
-        data_to_write = {
-            entry_name: dict(entry) for entry_name, entry in entries.items()
-        }
+        if self.selected_book:
+            self.save(self.selected_book)
 
+    def onSaveBookAsClick(self, s):
+        book_path = ''
+        if self.selected_book:
+            book_path = QFileDialog.getSaveFileName(
+                self, "Save Book File", application_path, "JSON files (*.json)"
+                )[0]
+        if book_path:
+            return self.save_book_to_file(book_path)
+
+    def save_book_to_file(self, book_path):
+        if '_BOOK_NAME' not in self.loaded_books[self.selected_book]:
+            book_name = self.selected_book[
+                :-5] if self.selected_book.endswith(
+                    '.json') else self.selected_book
+
+            self.loaded_books[self.selected_book]['_BOOK_NAME'] = book_name
+        else:
+            book_name = self.selected_book
+        entries = self.loaded_books[self.selected_book]
+        data_to_write = self.sort_book({
+            entry_name: entry if type(entry) is str else entry.copy()
+            for entry_name, entry in entries.items()
+            })
+
+        if self.selected_book.endswith('.json'):
+            self.loaded_books[book_name] = self.sort_book(entries)
+            del self.loaded_books[self.selected_book]
+            self.selected_book = book_name
+            self.inform_selected_book.setText(book_name)
+            self.update_book_list()
+            selected_address = self.selected_address
+            self.update_address_list(book_name)
+            if selected_address:
+                self.onAddressClick(selected_address)
         if not book_path.endswith('.json'):
             book_path = f'{book_path}.json'
         with open(book_path, 'w') as book_file:
@@ -471,8 +645,79 @@ glyphs that failed to load:\n{failed}""")
         self.books_path_list[self.selected_book] = book_path
         return 'succesfull', book_path
 
+    def sort_book(self, book: dict) -> dict:
+        order = reversed(sorted(book))
+        return {piece: book[piece] if type(book[piece]) is str or int
+                else book[piece].copy() for piece in order}
+
+
+class GlyphEditDialog(QDialog):
+    def __init__(self, parent: MainWindow, glyph_type: str):
+        super(GlyphEditDialog, self).__init__(parent)
+        self.glyph_type = glyph_type
+        self.glyph_buttons = {}
+        self.setLayout(QGridLayout())
+        glyphs_list = list(parent.loaded_glyphs['smol'][glyph_type].keys())
+        for glyph in glyphs_list:
+            self.glyph_buttons[glyph] = QPushButton()
+            self.glyph_buttons[glyph].clicked.connect(
+                lambda s=False, glyph=glyph:
+                    self.onGlyphClick(glyph)
+            )
+            self.glyph_buttons[glyph].setFixedSize(parent.smol_glyphs_size)
+            self.glyph_buttons[glyph].setIcon(
+                parent.loaded_glyphs['smol'][glyph_type][glyph])
+            self.glyph_buttons[glyph].setIconSize(parent.smol_glyphs_size)
+            pos = divmod(glyphs_list.index(glyph), 6)
+            self.layout().addWidget(
+                self.glyph_buttons[glyph], *pos
+            )
+
+        self.glyph_name_entry = QLineEdit()
+        self.glyph_name_entry.textChanged.connect(self.onGlyphNameEntryEdit)
+        self.glyph_name_entry.setFixedWidth(parent.smol_glyphs_size.width())
+        self.glyph_name_button = QPushButton()
+        self.glyph_name_button.clicked.connect(self.onGlyphNameClick)
+        self.glyph_name_button.setFixedSize(parent.smol_glyphs_size)
+        self.glyph_name_button.setIconSize(parent.smol_glyphs_size)
+        self.last_correct_glyph = ""
+
+        self.layout().addWidget(QLabel("Glyph name: "), pos[0]+1, 0)
+
+        self.layout().addWidget(self.glyph_name_entry, pos[0]+1, 1)
+        self.layout().addWidget(self.glyph_name_button, pos[0]+2, 1)
+
+    def onGlyphClick(self, glyph):
+        pos = int(self.windowTitle().split()[-1])
+        current_address = self.parent().selected_address
+        current_book = self.parent().selected_book
+        if current_address:
+            self.parent().loaded_books[current_book][current_address][
+                self.glyph_type.lower()][f'glyph{pos+1}'] = glyph
+            self.parent().onAddressClick(current_address)
+        self.hide()
+
+    def onGlyphNameEntryEdit(self, *args):
+        glyph_name = self.fix_glyph_name(self.glyph_name_entry.text())
+        if glyph_name in self.parent().loaded_glyphs['smol'][
+                self.glyph_type]:
+            self.glyph_name_button.setIcon(self.parent().loaded_glyphs['smol'][
+                self.glyph_type][glyph_name])
+            self.last_correct_glyph = glyph_name
+
+    def onGlyphNameClick(self, *args):
+        if self.last_correct_glyph:
+            self.onGlyphClick(self.last_correct_glyph)
+            self.last_correct_glyph = ''
+            self.glyph_name_button.setIcon(QIcon())
+            self.glyph_name_entry.setText('')
+
+    def fix_glyph_name(self, name: str) -> str:
+        return name.title() if self.glyph_type != 'uni' else name.lower()
+
 
 app = QApplication(sys.argv)
+app.setStyle("Fusion")
 w = MainWindow()
 w.show()
 sys.exit(w.exit_handler(app.exec()))
