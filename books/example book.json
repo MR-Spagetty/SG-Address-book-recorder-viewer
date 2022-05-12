@@ -29,6 +29,13 @@
             "glyph6": "g13",
             "glyph7": "g18",
             "glyph8": "g6"
+        },
+        "IDC": {
+            "code": "",
+            "OC broadcastable": false,
+            "OC port": "",
+            "component address": ""
         }
-    }
+    },
+    "_BOOK_NAME": "example book"
 }
