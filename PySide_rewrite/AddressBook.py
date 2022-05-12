@@ -15,10 +15,15 @@ try:
      QDialog, QGridLayout, QInputDialog, QLineEdit,
      QCheckBox
     )
-    from PySide6.QtGui import QAction, QIcon, QImage, QPixmap
+    from PySide6.QtGui import QAction, QIcon, QImage, QPixmap, QPalette, QColor
     from PySide6.QtCore import Qt, QSize
 except ImportError as e:
     raise ImportError('to run this program you need the PySide6 module') from e
+
+try:
+    from PIL import Image, ImageQt
+except ImportError as er:
+    raise ImportError('to run this program you need teh pillow module') from er
 
 try:
     import json
@@ -52,12 +57,21 @@ def load_config():
     # Custom theme colours
     "custom theme": {
         # for allowed colours see PySide6 Documentation
-        "main window background colour": "Dark-Gray",
-        "main window menu bar colour": "Gray",
-        "displays background colour": "Gray",
+        "Window": "White",
+        "WindowText": "Black",
+        "Base": "White",
+        "AlternateBase": "Light-Grey",
+        "ToolTipBase": "Black",
+        "ToolTipText": "Black",
+        "Text": "Black",
+        "Button": "White",
+        "ButtonText": "Black",
+        "BrightText": "Yellow",
+        "Link": "Blue",
+        "Highlight": "Blue",
+        "HighlightedText": "White",
         # Glyphs colour is an rgb value
-        "glyphs colour": [0, 0, 0],
-        "edit displays background colour": "Gray"
+        "glyphs colour": [0, 0, 0]
     },
     # weather or not to automatically save changes
     "auto save": true,
@@ -95,8 +109,8 @@ def load_config():
         config = ''.join(re.sub("#.*", "", config, flags=re.MULTILINE).split())
         config = re.sub("-", " ", config, flags=re.MULTILINE)
         configs = json.loads(config)
-        configs['app']['customtheme']['glyphscolour'] = tuple(
-            configs['app']['customtheme']['glyphscolour'])
+        # configs['app']['customtheme']['glyphscolour'] = tuple(
+        #     configs['app']['customtheme']['glyphscolour'])
         print('config:', configs)
 
 
@@ -123,25 +137,136 @@ def load_glyphs(path, folder, glyph_names):
     failed_to_load = []
     smol_size_px = configs['images']['smallglyphsizepx']
     large_size_px = configs['images']['largeglyphsizepx']
+    match configs['app']['theme']:
+        case 'light':
+            glyph_colour = [0, 0, 0]
+        case 'dark':
+            glyph_colour = [180, 180, 180]
+        case 'custom':
+            glyph_colour = configs['app']['customtheme']['glyphscolour']
 
     for glyph_name in glyph_names:
         glyph_path = os.path.join(path, 'Glyphs', folder, f'{glyph_name}.png')
         if os.path.isfile(glyph_path):
-            glyphs[glyph_name] = QPixmap(glyph_path).scaled(
+            img = Image.open(glyph_path)
+            img = img.convert("RGBA")
+
+            datas = img.getdata()
+
+            new_image_data = []
+            for item in datas:
+                if item[3] > 0:
+                    new_image_data.append(
+                        tuple(int(0-(og_part-part))
+                              for part, og_part in zip(glyph_colour, item)))
+                else:
+                    new_image_data.append(item)
+
+            img.putdata(new_image_data)
+
+            qt_image = ImageQt.toqpixmap(img)
+
+            glyphs[glyph_name] = qt_image.scaled(
                 large_size_px, large_size_px, Qt.KeepAspectRatio
                 )
-            smol_glyphs[glyph_name] = QPixmap(glyph_path).scaled(
+            smol_glyphs[glyph_name] = qt_image.scaled(
                 smol_size_px, smol_size_px, Qt.KeepAspectRatio
                 )
         else:
             failed_to_load.append(glyph_name)
-    glyphs['none'] = QPixmap(NONE_GLYPH_PATH).scaled(
+    img = Image.open(NONE_GLYPH_PATH)
+    img = img.convert("RGBA")
+
+    datas = img.getdata()
+
+    new_image_data = []
+    for item in datas:
+        if item[3] > 0:
+            new_image_data.append(
+                tuple(int(0-(og_part-part))
+                      for part, og_part in zip(glyph_colour, item)))
+        else:
+            new_image_data.append(item)
+
+    img.putdata(new_image_data)
+
+    qt_image = ImageQt.toqpixmap(img)
+    glyphs['none'] = qt_image.scaled(
         large_size_px, large_size_px, Qt.KeepAspectRatio
         )
-    smol_glyphs['none'] = QPixmap(NONE_GLYPH_PATH).scaled(
+    smol_glyphs['none'] = qt_image.scaled(
         smol_size_px, smol_size_px, Qt.KeepAspectRatio
         )
     return glyphs, smol_glyphs, failed_to_load
+
+
+def set_theme(qApp: QApplication):
+    global configs
+    match configs['app']['theme']:
+        case 'dark':
+            dark_palette = QPalette()
+
+            dark_palette.setColor(QPalette.Window, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.WindowText, Qt.white)
+            dark_palette.setColor(QPalette.Base, QColor(25, 25, 25))
+            dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ToolTipBase, Qt.white)
+            dark_palette.setColor(QPalette.ToolTipText, Qt.white)
+            dark_palette.setColor(QPalette.Text, Qt.white)
+            dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
+            dark_palette.setColor(QPalette.ButtonText, Qt.white)
+            dark_palette.setColor(QPalette.BrightText, Qt.red)
+            dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+            dark_palette.setColor(QPalette.HighlightedText, Qt.black)
+
+            qApp.setPalette(dark_palette)
+
+            qApp.setStyleSheet(
+                "QToolTip { color: #ffffff; background-color: #2a82da;"
+                " border: 1px solid white; }")
+        case 'custom':
+            custom_theme = configs['app']['customtheme']
+            custom_palette = QPalette()
+            custom_palette.setColor(QPalette.Window, QColor(
+                custom_theme["Window"].lower()
+            ))
+            custom_palette.setColor(QPalette.WindowText, QColor(
+                custom_theme['WindowText'].lower()
+            ))
+            custom_palette.setColor(QPalette.Base, QColor(
+                custom_theme['Base'].lower()
+            ))
+            custom_palette.setColor(QPalette.AlternateBase, QColor(
+                custom_theme['AlternateBase'].lower()
+            ))
+            custom_palette.setColor(QPalette.ToolTipBase, QColor(
+                custom_theme['ToolTipBase'].lower()
+            ))
+            custom_palette.setColor(QPalette.ToolTipText, QColor(
+                custom_theme['ToolTipText'].lower()
+            ))
+            custom_palette.setColor(QPalette.Text, QColor(
+                custom_theme['Text'].lower()
+            ))
+            custom_palette.setColor(QPalette.Button, QColor(
+                custom_theme['Button'].lower()
+            ))
+            custom_palette.setColor(QPalette.ButtonText, QColor(
+                custom_theme['ButtonText'].lower()
+            ))
+            custom_palette.setColor(QPalette.BrightText, QColor(
+                custom_theme['BrightText'].lower()
+            ))
+            custom_palette.setColor(QPalette.Link, QColor(
+                custom_theme['Link'].lower()
+            ))
+            custom_palette.setColor(QPalette.Highlight, QColor(
+                custom_theme['Highlight'].lower()
+            ))
+            custom_palette.setColor(QPalette.HighlightedText, QColor(
+                custom_theme['HighlightedText'].lower()
+            ))
 
 
 class MainWindow(QMainWindow):
@@ -172,6 +297,7 @@ class MainWindow(QMainWindow):
         }
 
         self.address_displays = {}
+        self.glyph_names = {}
 
         toolbar = self.menuBar()
 
@@ -291,6 +417,71 @@ glyphs that failed to load:\n{failed}""")
             self.loaded_glyphs['norm'][folder] = normal
             self.loaded_glyphs['smol'][folder] = smol
 
+    def generate_display(self, glyph_type, tab):
+        self.address_displays[glyph_type] = [
+            QPushButton(), QPushButton(), QPushButton(),
+            QPushButton(), QPushButton(), QPushButton(),
+            QPushButton(), QPushButton()
+        ]
+        self.glyph_names[glyph_type] = [
+            QPushButton(), QPushButton(), QPushButton(),
+            QPushButton(), QPushButton(), QPushButton(),
+            QPushButton(), QPushButton()
+        ]
+
+        vbox = QVBoxLayout()
+        tab.setLayout(vbox)
+        row_1 = QHBoxLayout()
+        row_1_widget = QWidget()
+        row_1_widget.setLayout(row_1)
+        vbox.addWidget(row_1_widget)
+        row_1_labels = QHBoxLayout()
+        row_1_labels_widget = QWidget()
+        row_1_labels_widget.setLayout(row_1_labels)
+        vbox.addWidget(row_1_labels_widget)
+
+        row_2 = QHBoxLayout()
+        row_2_widget = QWidget()
+        row_2_widget.setLayout(row_2)
+        vbox.addWidget(row_2_widget)
+        row_2_labels = QHBoxLayout()
+        row_2_labels_widget = QWidget()
+        row_2_labels_widget.setLayout(row_2_labels)
+        vbox.addWidget(row_2_labels_widget)
+
+        row_3 = QHBoxLayout()
+        row_3_widget = QWidget()
+        row_3_widget.setLayout(row_3)
+        vbox.addWidget(row_3_widget)
+        row_3_labels = QHBoxLayout()
+        row_3_labels_widget = QWidget()
+        row_3_labels_widget.setLayout(row_3_labels)
+        vbox.addWidget(row_3_labels_widget)
+
+        row_1.addWidget(self.address_displays[glyph_type][0])
+        row_1.addWidget(self.address_displays[glyph_type][1])
+        row_1.addWidget(self.address_displays[glyph_type][2])
+        row_1_labels.addWidget(self.glyph_names[glyph_type][0])
+        row_1_labels.addWidget(self.glyph_names[glyph_type][1])
+        row_1_labels.addWidget(self.glyph_names[glyph_type][2])
+
+        row_2.addWidget(self.address_displays[glyph_type][3])
+        row_2.addWidget(self.address_displays[glyph_type][4])
+        row_2.addWidget(self.address_displays[glyph_type][5])
+        row_2_labels.addWidget(self.glyph_names[glyph_type][3])
+        row_2_labels.addWidget(self.glyph_names[glyph_type][4])
+        row_2_labels.addWidget(self.glyph_names[glyph_type][5])
+
+        row_3.addWidget(self.address_displays[glyph_type][6])
+        row_3_labels.addWidget(self.glyph_names[glyph_type][6])
+        if configs['app']['displayarrangement'] == 1:
+            row_3.addWidget(QWidget())
+            row_3_labels.addWidget(QWidget())
+        row_3.addWidget(self.address_displays[glyph_type][7])
+        row_3_labels.addWidget(self.glyph_names[glyph_type][7])
+
+        return tab
+
     def generate_layout(self):
         general_layout = QHBoxLayout()
 
@@ -309,112 +500,9 @@ glyphs that failed to load:\n{failed}""")
         #                           self.inform_debug)
 
         address_tabs = QTabWidget()
-        mw_address_tab = QWidget()
-
-        self.address_displays['MW'] = [
-            QPushButton(), QPushButton(), QPushButton(),
-            QPushButton(), QPushButton(), QPushButton(),
-            QPushButton(), QPushButton()
-        ]
-
-        mw_vbox = QVBoxLayout()
-        mw_address_tab.setLayout(mw_vbox)
-        mw_row_1 = QHBoxLayout()
-        mw_row_1_widget = QWidget()
-        mw_row_1_widget.setLayout(mw_row_1)
-        mw_vbox.addWidget(mw_row_1_widget)
-        mw_row_2 = QHBoxLayout()
-        mw_row_2_widget = QWidget()
-        mw_row_2_widget.setLayout(mw_row_2)
-        mw_vbox.addWidget(mw_row_2_widget)
-        mw_row_3 = QHBoxLayout()
-        mw_row_3_widget = QWidget()
-        mw_row_3_widget.setLayout(mw_row_3)
-        mw_vbox.addWidget(mw_row_3_widget)
-
-        mw_row_1.addWidget(self.address_displays['MW'][0])
-        mw_row_1.addWidget(self.address_displays['MW'][1])
-        mw_row_1.addWidget(self.address_displays['MW'][2])
-
-        mw_row_2.addWidget(self.address_displays['MW'][3])
-        mw_row_2.addWidget(self.address_displays['MW'][4])
-        mw_row_2.addWidget(self.address_displays['MW'][5])
-
-        mw_row_3.addWidget(self.address_displays['MW'][6])
-        if configs['app']['displayarrangement'] == 1:
-            mw_row_3.addWidget(QWidget())
-        mw_row_3.addWidget(self.address_displays['MW'][7])
-
-        peg_address_tab = QWidget()
-        self.address_displays['PEG'] = [
-            QPushButton(), QPushButton(), QPushButton(),
-            QPushButton(), QPushButton(), QPushButton(),
-            QPushButton(), QPushButton()
-        ]
-
-        peg_vbox = QVBoxLayout()
-        peg_address_tab.setLayout(peg_vbox)
-        peg_row_1 = QHBoxLayout()
-        peg_row_1_widget = QWidget()
-        peg_row_1_widget.setLayout(peg_row_1)
-        peg_vbox.addWidget(peg_row_1_widget)
-        peg_row_2 = QHBoxLayout()
-        peg_row_2_widget = QWidget()
-        peg_row_2_widget.setLayout(peg_row_2)
-        peg_vbox.addWidget(peg_row_2_widget)
-        peg_row_3 = QHBoxLayout()
-        peg_row_3_widget = QWidget()
-        peg_row_3_widget.setLayout(peg_row_3)
-        peg_vbox.addWidget(peg_row_3_widget)
-        peg_row_1.addWidget(self.address_displays['PEG'][0])
-        peg_row_1.addWidget(self.address_displays['PEG'][1])
-        peg_row_1.addWidget(self.address_displays['PEG'][2])
-        peg_row_2.addWidget(self.address_displays['PEG'][3])
-        peg_row_2.addWidget(self.address_displays['PEG'][4])
-        peg_row_2.addWidget(self.address_displays['PEG'][5])
-        peg_row_3.addWidget(self.address_displays['PEG'][6])
-        if configs['app']['displayarrangement'] == 1:
-            peg_row_3.addWidget(QWidget())
-        peg_row_3.addWidget(self.address_displays['PEG'][7])
-
-        uni_address_tab = QWidget()
-        self.address_displays['UNI'] = [
-            QPushButton(), QPushButton(), QPushButton(),
-            QPushButton(), QPushButton(), QPushButton(),
-            QPushButton(), QPushButton()
-        ]
-
-        uni_vbox = QVBoxLayout()
-        uni_address_tab.setLayout(uni_vbox)
-        uni_row_1 = QHBoxLayout()
-        uni_row_1_widget = QWidget()
-        uni_row_1_widget.setLayout(uni_row_1)
-        uni_vbox.addWidget(uni_row_1_widget)
-        uni_row_2 = QHBoxLayout()
-        uni_row_2_widget = QWidget()
-        uni_row_2_widget.setLayout(uni_row_2)
-        uni_vbox.addWidget(uni_row_2_widget)
-        uni_row_3 = QHBoxLayout()
-        uni_row_3_widget = QWidget()
-        uni_row_3_widget.setLayout(uni_row_3)
-        uni_vbox.addWidget(uni_row_3_widget)
-
-        uni_row_1.addWidget(self.address_displays['UNI'][0])
-        uni_row_1.addWidget(self.address_displays['UNI'][1])
-        uni_row_1.addWidget(self.address_displays['UNI'][2])
-        uni_row_2.addWidget(self.address_displays['UNI'][3])
-        uni_row_2.addWidget(self.address_displays['UNI'][4])
-        uni_row_2.addWidget(self.address_displays['UNI'][5])
-        uni_row_3.addWidget(self.address_displays['UNI'][6])
-        if configs['app']['displayarrangement'] == 1:
-            uni_row_3.addWidget(QWidget())
-        uni_row_3.addWidget(self.address_displays['UNI'][7])
-
-        address_tabs.addTab(mw_address_tab, 'MW')
-        address_tabs.addTab(peg_address_tab, 'PEG')
-        address_tabs.addTab(uni_address_tab, 'UNI')
-
         for add_type in ['MW', 'PEG', 'UNI']:
+            address_tabs.addTab(
+                self.generate_display(add_type, QWidget()), add_type)
             for i in range(8):
                 self.address_displays[add_type][i].setFixedSize(
                     self.large_glyphs_size)
@@ -492,7 +580,6 @@ glyphs that failed to load:\n{failed}""")
                 book = json.load(book_file)
             if '_BOOK_NAME' in book:
                 book_name = book['_BOOK_NAME']
-                # del book['_BOOK_NAME']
             book_items = {}
             for name, entry in book.items():
                 try:
@@ -529,9 +616,8 @@ glyphs that failed to load:\n{failed}""")
         for book_name in self.loaded_books:
             actions[book_name] = QAction(book_name, self)
             self.books_menu.addAction(actions[book_name])
-            s = False  # wierd Qt thing
             actions[book_name].triggered.connect(
-                lambda s=s, book_name=book_name:
+                lambda s=False, book_name=book_name:
                     self.update_address_list(book_name)
                 )
 
@@ -560,11 +646,12 @@ glyphs that failed to load:\n{failed}""")
             if address_name != '_BOOK_NAME':
                 actions[address_name] = QAction(address_name, self)
                 self.address_menu.addAction(actions[address_name])
-                s = False  # wierd Qt thing
                 actions[address_name].triggered.connect(
-                    lambda s=s, address_name=address_name:
+                    lambda s=False, address_name=address_name:
                         self.onAddressClick(address_name)
                     )
+        if not actions:
+            self.address_menu.addAction(QAction('No Addresses to select'))
 
     def onNewAddressClick(self, s):
         if self.selected_book:
@@ -590,10 +677,21 @@ glyphs that failed to load:\n{failed}""")
         self.inform_selected_address.setText(address_name)
         for add_type in ['MW', 'PEG', 'UNI']:
             for i in range(8):
-                self.address_displays[add_type][i].setIcon(
-                    self.loaded_glyphs['norm'][add_type][
-                        self.loaded_books[self.selected_book][address_name][
-                            add_type.lower()][f'glyph{i+1}']])
+                try:
+                    self.address_displays[add_type][i].setIcon(
+                        self.loaded_glyphs['norm'][add_type][
+                            self.loaded_books[self.selected_book][
+                                address_name][add_type.lower()][f'glyph{i+1}']
+                            ])
+                    self.glyph_names[add_type][i].setText(self.loaded_books[
+                        self.selected_book][address_name][add_type.lower()][
+                            f'glyph{i+1}'])
+                except KeyError:
+                    self.address_displays[add_type][i].setIcon(
+                        self.loaded_glyphs['norm'][add_type]['none'])
+                    self.glyph_names[add_type][i].setText('none')
+                except RuntimeError:
+                    continue
         self.IDC_entry.setText(self.loaded_books[self.selected_book][
             self.selected_address]["IDC"]["code"])
         self.IDC_oc_broadcastable.setChecked(
@@ -681,6 +779,7 @@ class GlyphEditDialog(QDialog):
         self.glyph_name_entry.textChanged.connect(self.onGlyphNameEntryEdit)
         self.glyph_name_entry.setFixedWidth(parent.smol_glyphs_size.width())
         self.glyph_name_button = QPushButton()
+        self.glyph_name_button.setDefault(True)
         self.glyph_name_button.clicked.connect(self.onGlyphNameClick)
         self.glyph_name_button.setFixedSize(parent.smol_glyphs_size)
         self.glyph_name_button.setIconSize(parent.smol_glyphs_size)
@@ -696,10 +795,17 @@ class GlyphEditDialog(QDialog):
         current_address = self.parent().selected_address
         current_book = self.parent().selected_book
         if current_address:
-            self.parent().loaded_books[current_book][current_address][
-                self.glyph_type.lower()][f'glyph{pos+1}'] = glyph
+            if glyph != 'none':
+                self.parent().loaded_books[current_book][current_address][
+                    self.glyph_type.lower()][f'glyph{pos+1}'] = glyph
+            else:
+                del self.parent().loaded_books[current_book][current_address][
+                    self.glyph_type.lower()][f'glyph{pos+1}']
             self.parent().onAddressClick(current_address)
         self.hide()
+        self.last_correct_glyph = ''
+        self.glyph_name_button.setIcon(QIcon())
+        self.glyph_name_entry.setText('')
 
     def onGlyphNameEntryEdit(self, *args):
         glyph_name = self.fix_glyph_name(self.glyph_name_entry.text())
@@ -712,9 +818,6 @@ class GlyphEditDialog(QDialog):
     def onGlyphNameClick(self, *args):
         if self.last_correct_glyph:
             self.onGlyphClick(self.last_correct_glyph)
-            self.last_correct_glyph = ''
-            self.glyph_name_button.setIcon(QIcon())
-            self.glyph_name_entry.setText('')
 
     def fix_glyph_name(self, name: str) -> str:
         return name.title() if self.glyph_type != 'uni' else name.lower()
@@ -723,5 +826,6 @@ class GlyphEditDialog(QDialog):
 app = QApplication(sys.argv)
 app.setStyle("Fusion")
 w = MainWindow()
+set_theme(app)
 w.show()
 sys.exit(w.exit_handler(app.exec()))
