@@ -353,7 +353,7 @@ class MainWindow(QMainWindow):
             book_path = QFileDialog.getSaveFileName(
                 self, "Save Book File", application_path, "JSON files (*.json)"
             )[0]
-        return self.save_book_to_file(book_path)
+        return self.save_book_to_file(book_path, book_name)
 
     def auto_save(self, source):
         if configs['app']['autosave']:
@@ -715,25 +715,24 @@ glyphs that failed to load:\n{failed}""")
         if book_path:
             return self.save_book_to_file(book_path)
 
-    def save_book_to_file(self, book_path):
-        if '_BOOK_NAME' not in self.loaded_books[self.selected_book]:
-            book_name = self.selected_book[
-                :-5] if self.selected_book.endswith(
-                    '.json') else self.selected_book
+    def save_book_to_file(self, book_path, book_name):
+        if '_BOOK_NAME' not in self.loaded_books[book_name]:
+            book_name = book_name[
+                :-5] if book_name.endswith(
+                    '.json') else book_name
 
-            self.loaded_books[self.selected_book]['_BOOK_NAME'] = book_name
-        else:
-            book_name = self.selected_book
-        entries = self.loaded_books[self.selected_book]
+            self.loaded_books[book_name]['_BOOK_NAME'] = book_name
+
+        entries = self.loaded_books[book_name]
         data_to_write = self.sort_book({
             entry_name: entry if type(entry) is str else entry.copy()
             for entry_name, entry in entries.items()
             })
 
-        if self.selected_book.endswith('.json'):
+        if book_name.endswith('.json'):
             self.loaded_books[book_name] = self.sort_book(entries)
-            del self.loaded_books[self.selected_book]
-            self.selected_book = book_name
+            del self.loaded_books[book_name]
+            book_name = book_name
             self.inform_selected_book.setText(book_name)
             self.update_book_list()
             selected_address = self.selected_address
@@ -744,7 +743,7 @@ glyphs that failed to load:\n{failed}""")
             book_path = f'{book_path}.json'
         with open(book_path, 'w') as book_file:
             json.dump(data_to_write, book_file, indent=4)
-        self.books_path_list[self.selected_book] = book_path
+        self.books_path_list[book_name] = book_path
         return 'succesfull', book_path
 
     def sort_book(self, book: dict) -> dict:
