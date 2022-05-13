@@ -713,7 +713,7 @@ glyphs that failed to load:\n{failed}""")
                 self, "Save Book File", application_path, "JSON files (*.json)"
                 )[0]
         if book_path:
-            return self.save_book_to_file(book_path)
+            return self.save_book_to_file(book_path, self.selected_book)
 
     def save_book_to_file(self, book_path, book_name):
         if '_BOOK_NAME' not in self.loaded_books[book_name]:
