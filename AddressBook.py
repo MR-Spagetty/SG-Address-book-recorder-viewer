@@ -23,7 +23,7 @@ except ImportError as e:
 try:
     from PIL import Image, ImageQt
 except ImportError as er:
-    raise ImportError('to run this program you need teh pillow module') from er
+    raise ImportError('to run this program you need the pillow module') from er
 
 try:
     import json
@@ -47,6 +47,9 @@ print('file location:', file_location)
 
 
 def load_config():
+    """Loads the config for the program
+    if config not found the function will create the default config
+    """
     global application_path
     if not os.path.isfile(os.path.join(application_path, 'AddresssBook.cfg')):
         default_configs = """{
@@ -201,6 +204,12 @@ def load_glyphs(path, folder, glyph_names):
 
 
 def set_theme(qApp: QApplication):
+    """sets the theme of the give QApplication
+
+    Args:
+        qApp (QApplication): the QApplication to set the theme for
+    """
+    qApp.setStyle("Fusion")
     global configs
     match configs['app']['theme']:
         case 'dark':
@@ -271,6 +280,9 @@ def set_theme(qApp: QApplication):
 
 class MainWindow(QMainWindow):
     def __init__(self):
+        """Creates a MainWindow Object
+        and sets it up
+        """
         super(MainWindow, self).__init__()
         self.setWindowTitle("Address Book")
         load_config()
@@ -343,7 +355,17 @@ class MainWindow(QMainWindow):
 
         self.generate_layout()
 
-    def save(self, book_name):
+    def save(self, book_name: str):
+        """saves the specified book to it's know path
+        is the path is unknown it prompts the user to specify a path to save
+        it to the
+
+        Args:
+            book_name (str): the name of the book that is to be save
+
+        Returns:
+            tuple[Literal['succesfull'], str | Any]: the succes state of the save
+        """
         unknown_path = False
         try:
             book_path = self.books_path_list[book_name]
@@ -355,7 +377,12 @@ class MainWindow(QMainWindow):
             )[0]
         return self.save_book_to_file(book_path, book_name)
 
-    def auto_save(self, source):
+    def auto_save(self, source: str):
+        """handling of autosave states based on config
+
+        Args:
+            source (str): what event triggered the autosave
+        """
         if configs['app']['autosave']:
             if source == 'on close' and\
                     configs['app']['autosavetime'] == 'on close':
@@ -372,10 +399,17 @@ class MainWindow(QMainWindow):
                     self.save(self.selected_book)
 
     def exit_handler(self, *args):
+        """triggers the auto_save function on app close.
+
+        Returns:
+            args[0]
+        """
         self.auto_save("on close")
         return args[0]
 
     def load_glyphs(self):
+        """loads the glyphs for use in the program
+        """
         MW_GLYPHS_LIST = ['Crater', 'Virgo', 'Bootes', 'Centaurus', 'Libra',
                           'Serpens Caput', 'Norma', 'Scorpius',
                           'Corona Australis', 'Scutum', 'Sagittarius',
@@ -417,7 +451,16 @@ glyphs that failed to load:\n{failed}""")
             self.loaded_glyphs['norm'][folder] = normal
             self.loaded_glyphs['smol'][folder] = smol
 
-    def generate_display(self, glyph_type, tab):
+    def generate_display(self, glyph_type: str, tab: QWidget) -> QWidget:
+        """generates the display tab for the specified glyph type
+
+        Args:
+            glyph_type (str): the type of glyph to create the tab for
+            tab (QWidget): the tab to generate the display within
+
+        Returns:
+            QWidget: the conpleted tab
+        """
         self.address_displays[glyph_type] = [
             QPushButton(), QPushButton(), QPushButton(),
             QPushButton(), QPushButton(), QPushButton(),
@@ -483,6 +526,8 @@ glyphs that failed to load:\n{failed}""")
         return tab
 
     def generate_layout(self):
+        """Generates the layout of the app
+        """
         general_layout = QHBoxLayout()
 
         self.setCentralWidget(QWidget())
@@ -541,12 +586,19 @@ glyphs that failed to load:\n{failed}""")
         self.IDC_oc_address.setFixedWidth(self.large_glyphs_size.width())
 
     def onIDCEdit(self, *args):
+        """signal handler for IDC editing
+        """
         if self.selected_address:
             self.loaded_books[self.selected_book][
                 self.selected_address]["IDC"][
                     "code"] = self.IDC_entry.text()
 
-    def onIDCBroadcastableClick(self, checked):
+    def onIDCBroadcastableClick(self, checked: bool):
+        """signal handler for IDC broadcastable checkbox being clicked
+
+        Args:
+            checked (_type_): wheather the checkbox is checked or not
+        """
         if self.selected_address:
             self.loaded_books[self.selected_book][
                 self.selected_address]["IDC"][
@@ -559,18 +611,31 @@ glyphs that failed to load:\n{failed}""")
                     "OC port"] = self.IDC_oc_port.text()
 
     def onIDCOCCompAddress(self, *args):
+        """signal handler for IDC comp address being edited
+        """
         if self.selected_address:
             self.loaded_books[self.selected_book][
                 self.selected_address]["IDC"][
                     "component address"] = self.IDC_oc_address.text()
 
-    def onGlyphDisplayClick(self, glyph_pos, glyph_type):
+    def onGlyphDisplayClick(self, glyph_pos: int, glyph_type: str):
+        """signal handler for when a glyph display is clicked
+
+        Args:
+            glyph_pos (int): the index of that glyph in the address
+            glyph_type (str): the type of glyph it is
+        """
         self.inform_debug.setText(f"{glyph_pos, glyph_type}")
         self.glyph_dialogues[glyph_type].setWindowTitle(
             f"{glyph_type}: {glyph_pos}")
         self.glyph_dialogues[glyph_type].exec()
 
-    def onLoadBookClick(self, s):
+    def onLoadBookClick(self, s: bool):
+        """signal handler for the load book action
+
+        Args:
+            s (bool): checked?
+        """
         book_path = QFileDialog.getOpenFileName(
             self, "Open Book File", application_path, "JSON files (*.json)"
             )[0]
@@ -611,6 +676,8 @@ glyphs that failed to load:\n{failed}""")
             print('failed - file not exist')
 
     def update_book_list(self):
+        """updates the list of books avalable to select from
+        """
         self.books_menu.clear()
         actions = {}
         for book_name in self.loaded_books:
@@ -621,7 +688,12 @@ glyphs that failed to load:\n{failed}""")
                     self.update_address_list(book_name)
                 )
 
-    def onNewBookClick(self, s):
+    def onNewBookClick(self, s: bool):
+        """event handler for when the new book action is clicked
+
+        Args:
+            s (bool): checked?
+        """
         text = QInputDialog.getText(self, "New Book", "Book Name:",
                                     QLineEdit.Normal)
         if text[0] and text[1]:
@@ -630,7 +702,12 @@ glyphs that failed to load:\n{failed}""")
             }
             self.update_book_list()
 
-    def update_address_list(self, book_name):
+    def update_address_list(self, book_name: str):
+        """updates the list of addresses you can slect from
+
+        Args:
+            book_name (str): the book to get the addresses from
+        """
         if self.selected_book != "":
             self.auto_save("switch book")
         self.selected_book = book_name
@@ -653,7 +730,12 @@ glyphs that failed to load:\n{failed}""")
         if not actions:
             self.address_menu.addAction(QAction('No Addresses to select'))
 
-    def onNewAddressClick(self, s):
+    def onNewAddressClick(self, s: bool):
+        """event handler for when the new address action is clicked
+
+        Args:
+            s (bool): checked?
+        """
         if self.selected_book:
             text = QInputDialog.getText(self, "New Address", "Address Name:",
                                         QLineEdit.Normal)
@@ -672,7 +754,12 @@ glyphs that failed to load:\n{failed}""")
                 self.loaded_books[self.selected_book][text[0]] = dict(TEMPLATE)
                 self.update_address_list(self.selected_book)
 
-    def onAddressClick(self, address_name):
+    def onAddressClick(self, address_name: str):
+        """event handler for when an address action is clicked
+
+        Args:
+            address_name (str): the name of the address that was clicked
+        """
         self.selected_address = address_name
         self.inform_selected_address.setText(address_name)
         for add_type in ['MW', 'PEG', 'UNI']:
@@ -702,11 +789,24 @@ glyphs that failed to load:\n{failed}""")
         self.IDC_oc_address.setText(self.loaded_books[self.selected_book][
             self.selected_address]["IDC"]["component address"])
 
-    def onSaveBookClick(self, s):
+    def onSaveBookClick(self, s: bool):
+        """event handler for when the save book action is clicked
+
+        Args:
+            s (bool): checked?
+        """
         if self.selected_book:
             self.save(self.selected_book)
 
-    def onSaveBookAsClick(self, s):
+    def onSaveBookAsClick(self, s: bool):
+        """event handler for when save book as action is clicked
+
+        Args:
+            s (bool): checked?
+
+        Returns:
+            tuple[Literal['succesfull'], str | Any]: succes state of file save
+        """
         book_path = ''
         if self.selected_book:
             book_path = QFileDialog.getSaveFileName(
@@ -715,7 +815,16 @@ glyphs that failed to load:\n{failed}""")
         if book_path:
             return self.save_book_to_file(book_path, self.selected_book)
 
-    def save_book_to_file(self, book_path, book_name):
+    def save_book_to_file(self, book_path: str, book_name: str):
+        """saves book to file
+
+        Args:
+            book_path (str): the path to the file
+            book_name (str): the name of the book to save to file
+
+        Returns:
+            tuple[Literal['succesfull'], str | Any]: succes state
+        """
         if '_BOOK_NAME' not in self.loaded_books[book_name]:
             book_name = book_name[
                 :-5] if book_name.endswith(
@@ -747,6 +856,14 @@ glyphs that failed to load:\n{failed}""")
         return 'succesfull', book_path
 
     def sort_book(self, book: dict) -> dict:
+        """sorts a book to have the "_BOOK_NAME" as the first item
+
+        Args:
+            book (dict): the book to be sorted
+
+        Returns:
+            dict: the sorted book
+        """
         order = reversed(sorted(book))
         return {piece: book[piece] if type(book[piece]) is str or int
                 else book[piece].copy() for piece in order}
@@ -754,6 +871,13 @@ glyphs that failed to load:\n{failed}""")
 
 class GlyphEditDialog(QDialog):
     def __init__(self, parent: MainWindow, glyph_type: str):
+        """generates the glyph edit dialogue
+
+        Args:
+            parent (MainWindow): the parent window
+            glyph_type (str): the glyph typoe that will be edited in this
+            dialogue
+        """
         super(GlyphEditDialog, self).__init__(parent)
         self.glyph_type = glyph_type
         self.glyph_buttons = {}
@@ -789,7 +913,12 @@ class GlyphEditDialog(QDialog):
         self.layout().addWidget(self.glyph_name_entry, pos[0]+1, 1)
         self.layout().addWidget(self.glyph_name_button, pos[0]+2, 1)
 
-    def onGlyphClick(self, glyph):
+    def onGlyphClick(self, glyph: str):
+        """event handler for when a glyph is clicked in the dialogues
+
+        Args:
+            glyph (str): the glyph clicked
+        """
         pos = int(self.windowTitle().split()[-1])
         current_address = self.parent().selected_address
         current_book = self.parent().selected_book
@@ -807,6 +936,8 @@ class GlyphEditDialog(QDialog):
         self.glyph_name_entry.setText('')
 
     def onGlyphNameEntryEdit(self, *args):
+        """event handler for when the glyph name entry has been typed in
+        """
         glyph_name = self.fix_glyph_name(self.glyph_name_entry.text())
         if glyph_name in self.parent().loaded_glyphs['smol'][
                 self.glyph_type]:
@@ -815,6 +946,8 @@ class GlyphEditDialog(QDialog):
             self.last_correct_glyph = glyph_name
 
     def onGlyphNameClick(self, *args):
+        """event handler for when the glyph by name button is clicked
+        """
         if self.last_correct_glyph:
             self.onGlyphClick(self.last_correct_glyph)
 
@@ -823,7 +956,6 @@ class GlyphEditDialog(QDialog):
 
 
 app = QApplication(sys.argv)
-app.setStyle("Fusion")
 w = MainWindow()
 set_theme(app)
 w.show()
