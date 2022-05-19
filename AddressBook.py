@@ -13,7 +13,7 @@ try:
      QLabel, QToolBar, QStatusBar, QFileDialog,
      QMenu, QToolButton, QTabWidget, QPushButton,
      QDialog, QGridLayout, QInputDialog, QLineEdit,
-     QCheckBox
+     QCheckBox, QComboBox
     )
     from PySide6.QtGui import QAction, QIcon, QImage, QPixmap, QPalette, QColor
     from PySide6.QtCore import Qt, QSize
@@ -364,7 +364,8 @@ class MainWindow(QMainWindow):
             book_name (str): the name of the book that is to be save
 
         Returns:
-            tuple[Literal['succesfull'], str | Any]: the succes state of the save
+            tuple[Literal['succesfull'], str | Any]: the succes state of the
+            save
         """
         unknown_path = False
         try:
@@ -391,7 +392,7 @@ class MainWindow(QMainWindow):
             elif source == configs['app']['autosavetime']:
                 self.save(self.selected_book)
             elif configs['app']['autosavetime'] == "switch or close" and\
-                    source in ["on close", 'switch book']:
+                    source in {"on close", 'switch book'}:
                 if source == 'on close':
                     for book_name in self.loaded_books:
                         self.save(book_name)
@@ -880,6 +881,8 @@ class GlyphEditDialog(QDialog):
         """
         super(GlyphEditDialog, self).__init__(parent)
         self.glyph_type = glyph_type
+        self.glyph_name_entry = QComboBox()
+        self.glyph_name_entry.setEditable(True)
         self.glyph_buttons = {}
         self.setLayout(QGridLayout())
         glyphs_list = list(parent.loaded_glyphs['smol'][glyph_type].keys())
@@ -897,9 +900,11 @@ class GlyphEditDialog(QDialog):
             self.layout().addWidget(
                 self.glyph_buttons[glyph], *pos
             )
+            self.glyph_name_entry.addItem(glyph)
 
-        self.glyph_name_entry = QLineEdit()
-        self.glyph_name_entry.textChanged.connect(self.onGlyphNameEntryEdit)
+        self.glyph_name_entry.setCurrentText('')
+        self.glyph_name_entry.currentTextChanged.connect(
+            self.onGlyphNameEntryEdit)
         self.glyph_name_entry.setFixedWidth(parent.smol_glyphs_size.width())
         self.glyph_name_button = QPushButton()
         self.glyph_name_button.setDefault(True)
@@ -933,12 +938,12 @@ class GlyphEditDialog(QDialog):
         self.hide()
         self.last_correct_glyph = ''
         self.glyph_name_button.setIcon(QIcon())
-        self.glyph_name_entry.setText('')
+        self.glyph_name_entry.setCurrentText('')
 
     def onGlyphNameEntryEdit(self, *args):
         """event handler for when the glyph name entry has been typed in
         """
-        glyph_name = self.fix_glyph_name(self.glyph_name_entry.text())
+        glyph_name = self.fix_glyph_name(self.glyph_name_entry.currentText())
         if glyph_name in self.parent().loaded_glyphs['smol'][
                 self.glyph_type]:
             self.glyph_name_button.setIcon(self.parent().loaded_glyphs['smol'][
