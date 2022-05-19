@@ -709,8 +709,6 @@ glyphs that failed to load:\n{failed}""")
         Args:
             book_name (str): the book to get the addresses from
         """
-        if self.selected_book != "":
-            self.auto_save("switch book")
         self.selected_book = book_name
         self.inform_selected_book.setText(book_name)
         self.inform_selected_address.setText("None")
@@ -726,7 +724,8 @@ glyphs that failed to load:\n{failed}""")
                 self.address_menu.addAction(actions[address_name])
                 actions[address_name].triggered.connect(
                     lambda s=False, address_name=address_name:
-                        self.onAddressClick(address_name)
+                        (self.auto_save("switch book"),
+                         self.onAddressClick(address_name))
                     )
         if not actions:
             self.address_menu.addAction(QAction('No Addresses to select'))
