@@ -900,7 +900,8 @@ class GlyphEditDialog(QDialog):
             self.layout().addWidget(
                 self.glyph_buttons[glyph], *pos
             )
-            self.glyph_name_entry.addItem(glyph)
+            self.glyph_name_entry.addItem(
+                glyph[2:] if self.glyph_type == 'uni' else glyph)
 
         self.glyph_name_entry.setCurrentText('')
         self.glyph_name_entry.currentTextChanged.connect(
@@ -944,6 +945,8 @@ class GlyphEditDialog(QDialog):
         """event handler for when the glyph name entry has been typed in
         """
         glyph_name = self.glyph_name_entry.currentText()
+        if self.glyph_type == "uni" and not glyph_name.startswith("g"):
+            glyph_name = f'g{glyph_name}'
         if glyph_name in self.parent().loaded_glyphs['smol'][
                 self.glyph_type]:
             self.glyph_name_button.setIcon(self.parent().loaded_glyphs['smol'][
