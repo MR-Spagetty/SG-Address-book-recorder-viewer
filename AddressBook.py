@@ -376,7 +376,8 @@ class MainWindow(QMainWindow):
             book_path = QFileDialog.getSaveFileName(
                 self, "Save Book File", application_path, "JSON files (*.json)"
             )[0]
-        return self.save_book_to_file(book_path, book_name)
+        if book_path:
+            return self.save_book_to_file(book_path, book_name)
 
     def auto_save(self, source: str):
         """handling of autosave states based on config
@@ -686,7 +687,8 @@ glyphs that failed to load:\n{failed}""")
             self.books_menu.addAction(actions[book_name])
             actions[book_name].triggered.connect(
                 lambda s=False, book_name=book_name:
-                    self.update_address_list(book_name)
+                    (self.auto_save("switch book"),
+                     self.update_address_list(book_name))
                 )
 
     def onNewBookClick(self, s: bool):
@@ -724,8 +726,7 @@ glyphs that failed to load:\n{failed}""")
                 self.address_menu.addAction(actions[address_name])
                 actions[address_name].triggered.connect(
                     lambda s=False, address_name=address_name:
-                        (self.auto_save("switch book"),
-                         self.onAddressClick(address_name))
+                        self.onAddressClick(address_name)
                     )
         if not actions:
             self.address_menu.addAction(QAction('No Addresses to select'))
@@ -942,7 +943,7 @@ class GlyphEditDialog(QDialog):
     def onGlyphNameEntryEdit(self, *args):
         """event handler for when the glyph name entry has been typed in
         """
-        glyph_name = self.fix_glyph_name(self.glyph_name_entry.currentText())
+        glyph_name = self.glyph_name_entry.currentText()
         if glyph_name in self.parent().loaded_glyphs['smol'][
                 self.glyph_type]:
             self.glyph_name_button.setIcon(self.parent().loaded_glyphs['smol'][
@@ -954,9 +955,6 @@ class GlyphEditDialog(QDialog):
         """
         if self.last_correct_glyph:
             self.onGlyphClick(self.last_correct_glyph)
-
-    def fix_glyph_name(self, name: str) -> str:
-        return name.title() if self.glyph_type != 'uni' else name.lower()
 
 
 app = QApplication(sys.argv)
