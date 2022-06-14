@@ -4,10 +4,10 @@
 block_cipher = None
 
 
-a = Analysis(['PySide_rewrite\\AddressBook.py'],
+a = Analysis(['AddressBook.py'],
              pathex=[],
              binaries=[],
-             datas=[('.\\PySide_rewrite\\Glyphs\\', '.\\Glyphs')],
+             datas=[('.\\Glyphs\\', '.\\Glyphs')],
              hiddenimports=[],
              hookspath=[],
              hooksconfig={},
