@@ -13,7 +13,8 @@ try:
      QLabel, QToolBar, QStatusBar, QFileDialog,
      QMenu, QToolButton, QTabWidget, QPushButton,
      QDialog, QGridLayout, QInputDialog, QLineEdit,
-     QCheckBox, QComboBox
+     QCheckBox, QComboBox, QTreeWidget, QTreeWidgetItem,
+     QMessageBox
     )
     from PySide6.QtGui import QAction, QIcon, QImage, QPixmap, QPalette, QColor
     from PySide6.QtCore import Qt, QSize
@@ -278,6 +279,7 @@ def set_theme(qApp: QApplication):
             ))
 
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         """Creates a MainWindow Object
@@ -296,11 +298,15 @@ class MainWindow(QMainWindow):
 
         self.loaded_books = {}
         self.books_path_list = {}
-        self.inform_selected_book = QLabel("None")
+        # self.inform_selected_book = QLabel("None")
         self.selected_book = ""
-        self.inform_selected_address = QLabel("None")
+        # self.inform_selected_address = QLabel("None")
         self.selected_address = ""
-        self.inform_debug = QLabel("")
+        self.address_selector = QTreeWidget()
+        self.address_selector.itemClicked.connect(
+            self.onAddressSelected
+        )
+        self.address_selector.setHeaderLabels(['Books:'])
 
         self.glyph_dialogues = {
             'MW': GlyphEditDialog(self, 'MW'),
@@ -346,12 +352,6 @@ class MainWindow(QMainWindow):
         self.new_address.triggered.connect(self.onNewAddressClick)
         # self.new_address.setDisabled(True)
         file_menu.addAction(self.new_address)
-
-        self.books_menu = toolbar.addMenu("&Books")
-        self.books_menu.addAction('There are no books Loaded')
-
-        self.address_menu = toolbar.addMenu("&Address")
-        self.address_menu.addAction('Please Select a book')
 
         self.generate_layout()
 
@@ -535,16 +535,17 @@ glyphs that failed to load:\n{failed}""")
         self.setCentralWidget(QWidget())
         self.centralWidget().setLayout(general_layout)
 
-        information_layout = QFormLayout()
-        information_widget = QWidget()
-        information_widget.setLayout(information_layout)
-        general_layout.addWidget(information_widget)
-        information_layout.addRow("Selected Book: ",
-                                  self.inform_selected_book)
-        information_layout.addRow("Selected Address: ",
-                                  self.inform_selected_address)
+        # information_layout = QFormLayout()
+        # information_widget = QWidget()
+        # information_widget.setLayout(information_layout)
+        # general_layout.addWidget(information_widget)
+        # information_layout.addRow("Selected Book: ",
+        #                           self.inform_selected_book)
+        # information_layout.addRow("Selected Address: ",
+        #                           self.inform_selected_address)
         # information_layout.addRow("Debug: ",
         #                           self.inform_debug)
+        general_layout.addWidget(self.address_selector)
 
         address_tabs = QTabWidget()
         for add_type in ['MW', 'PEG', 'UNI']:
@@ -642,11 +643,27 @@ glyphs that failed to load:\n{failed}""")
             self, "Open Book File", application_path, "JSON files (*.json)"
             )[0]
         book_name = os.path.split(book_path)[-1]
+
         if os.path.isfile(book_path):
             with open(book_path, 'r') as book_file:
                 book = json.load(book_file)
             if '_BOOK_NAME' in book:
                 book_name = book['_BOOK_NAME']
+            if book_name in self.loaded_books:
+                overite = QMessageBox(
+                    QMessageBox.Icon.Warning, "Overite?",
+                    "This book is already loaded would you like to overite it",
+                    QMessageBox.Yes | QMessageBox.No, self
+                    )
+                if (
+                        overite.exec()
+                        == QMessageBox.NoRole | QMessageBox.RejectRole):
+                    return None
+                for child in self.address_selector.children():
+                    if child.text(0) == book_name:
+                        self.address_selector.removeItemWidget(child)
+                        del child
+                        break
             book_items = {}
             for name, entry in book.items():
                 try:
@@ -672,24 +689,10 @@ glyphs that failed to load:\n{failed}""")
                         book_items[name] = entry
             self.books_path_list[book_name] = book_path
             self.loaded_books[book_name] = book_items
-            self.update_book_list()
-            # print("succesfull")
+            self.address_selector.addTopLevelItem(
+                BookTreeItem(self, book_name))
         elif book_path:
             print('failed - file not exist')
-
-    def update_book_list(self):
-        """updates the list of books avalable to select from
-        """
-        self.books_menu.clear()
-        actions = {}
-        for book_name in self.loaded_books:
-            actions[book_name] = QAction(book_name, self)
-            self.books_menu.addAction(actions[book_name])
-            actions[book_name].triggered.connect(
-                lambda s=False, book_name=book_name:
-                    (self.auto_save("switch book"),
-                     self.update_address_list(book_name))
-                )
 
     def onNewBookClick(self, s: bool):
         """event handler for when the new book action is clicked
@@ -699,37 +702,18 @@ glyphs that failed to load:\n{failed}""")
         """
         text = QInputDialog.getText(self, "New Book", "Book Name:",
                                     QLineEdit.Normal)
+        if text in self.loaded_books:
+            QMessageBox(
+                QMessageBox.Icon.Critical, "Already Exist",
+                "You already haev a loaded book by that name",
+                QMessageBox.Cancel
+            ).exec()
+            return None
         if text[0] and text[1]:
             self.loaded_books[text[0]] = {
                 '_BOOK_NAME': text[0],
             }
-            self.update_book_list()
-
-    def update_address_list(self, book_name: str):
-        """updates the list of addresses you can slect from
-
-        Args:
-            book_name (str): the book to get the addresses from
-        """
-        self.selected_book = book_name
-        self.inform_selected_book.setText(book_name)
-        self.inform_selected_address.setText("None")
-        self.selected_address = ""
-        for add_type in ['MW', 'PEG', 'UNI']:
-            for i in range(8):
-                self.address_displays[add_type][i].setIcon(QIcon())
-        self.address_menu.clear()
-        actions = {}
-        for address_name in self.loaded_books[book_name]:
-            if address_name != '_BOOK_NAME':
-                actions[address_name] = QAction(address_name, self)
-                self.address_menu.addAction(actions[address_name])
-                actions[address_name].triggered.connect(
-                    lambda s=False, address_name=address_name:
-                        self.onAddressClick(address_name)
-                    )
-        if not actions:
-            self.address_menu.addAction(QAction('No Addresses to select'))
+            self.address_selector.addTopLevelItem(BookTreeItem(self, text[0]))
 
     def onNewAddressClick(self, s: bool):
         """event handler for when the new address action is clicked
@@ -737,42 +721,59 @@ glyphs that failed to load:\n{failed}""")
         Args:
             s (bool): checked?
         """
-        if self.selected_book:
-            text = QInputDialog.getText(self, "New Address", "Address Name:",
-                                        QLineEdit.Normal)
-            if text[0] and text[1]:
-                TEMPLATE = {
-                    "mw": {},
-                    "peg": {},
-                    "uni": {},
-                    'IDC': {
-                        'code': '',
-                        "OC broadcastable": False,
-                        'OC port': '',
-                        'component address': ''
-                    }
-                }
-                self.loaded_books[self.selected_book][text[0]] = dict(TEMPLATE)
-                self.update_address_list(self.selected_book)
+        book_name = self.book_selector_prompt("Book to add to:")
+        if not book_name:
+            return None
 
-    def onAddressClick(self, address_name: str):
+        text = QInputDialog.getText(self, "New Address", "Address Name:",
+                                    QLineEdit.Normal)
+        if text[0] and text[1]:
+            TEMPLATE = {
+                "mw": {},
+                "peg": {},
+                "uni": {},
+                'IDC': {
+                    'code': '',
+                    "OC broadcastable": False,
+                    'OC port': '',
+                    'component address': ''
+                }
+            }
+            if text[0] in self.loaded_books[book_name]:
+                QMessageBox(QMessageBox.Icon.Warning, "New Address ERROR",
+                            "Address already exists", QMessageBox.Ok,
+                            self.parent_window).exec()
+                return None
+            self.loaded_books[book_name][text[0]] = dict(TEMPLATE)
+            for child in self.address_selector.findItems(
+                book_name, Qt.MatchExactly, 0
+                    ):
+                if child.text(0) == book_name:
+                    child.new_address(text[0])
+                    break
+
+    def onAddressSelected(self, item: QTreeWidgetItem, Column):
         """event handler for when an address action is clicked
 
         Args:
             address_name (str): the name of the address that was clicked
         """
+        if not item.parent():
+            return None
+        address_name = item.text(0)
+        book_name = item.parent().text(0)
         self.selected_address = address_name
-        self.inform_selected_address.setText(address_name)
+        self.selected_book = book_name
         for add_type in ['MW', 'PEG', 'UNI']:
             for i in range(8):
                 try:
                     self.address_displays[add_type][i].setIcon(
                         self.loaded_glyphs['norm'][add_type][
-                            self.loaded_books[self.selected_book][
+                            self.loaded_books[book_name][
                                 address_name][add_type.lower()][f'glyph{i+1}']
                             ])
                     self.glyph_names[add_type][i].setText(self.loaded_books[
-                        self.selected_book][address_name][add_type.lower()][
+                        book_name][address_name][add_type.lower()][
                             f'glyph{i+1}'])
                 except KeyError:
                     self.address_displays[add_type][i].setIcon(
@@ -780,14 +781,14 @@ glyphs that failed to load:\n{failed}""")
                     self.glyph_names[add_type][i].setText('none')
                 except RuntimeError:
                     continue
-        self.IDC_entry.setText(self.loaded_books[self.selected_book][
+        self.IDC_entry.setText(self.loaded_books[book_name][
             self.selected_address]["IDC"]["code"])
         self.IDC_oc_broadcastable.setChecked(
-            self.loaded_books[self.selected_book][self.selected_address][
+            self.loaded_books[book_name][self.selected_address][
                 "IDC"]["OC broadcastable"])
-        self.IDC_oc_port.setText(self.loaded_books[self.selected_book][
+        self.IDC_oc_port.setText(self.loaded_books[book_name][
             self.selected_address]["IDC"]["OC port"])
-        self.IDC_oc_address.setText(self.loaded_books[self.selected_book][
+        self.IDC_oc_address.setText(self.loaded_books[book_name][
             self.selected_address]["IDC"]["component address"])
 
     def onSaveBookClick(self, s: bool):
@@ -808,8 +809,9 @@ glyphs that failed to load:\n{failed}""")
         Returns:
             tuple[Literal['succesfull'], str | Any]: succes state of file save
         """
-        book_path = ''
-        if self.selected_book:
+
+        if not self.selected_book:
+
             book_path = QFileDialog.getSaveFileName(
                 self, "Save Book File", application_path, "JSON files (*.json)"
                 )[0]
@@ -868,6 +870,41 @@ glyphs that failed to load:\n{failed}""")
         order = reversed(sorted(book))
         return {piece: book[piece] if type(book[piece]) is str or int
                 else book[piece].copy() for piece in order}
+
+    def book_selector_prompt(self, prompt: str):
+        book = QMessageBox()
+        book.setLayout(QVBoxLayout())
+        book.layout().addWidget(QLabel(prompt))
+        book_combo = QComboBox()
+        book_combo.addItems(self.loaded_books.keys())
+        book.layout().addWidget(book_combo)
+        apply_button = QPushButton("Apply")
+        book.layout().addWidget(apply_button)
+        apply_button.setDefault(True)
+        apply_button.clicked.connect(book.accept)
+        book.setStandardButtons(QMessageBox.NoButton)
+        book.exec()
+        if book.result() == QMessageBox.Rejected:
+            return None
+        return book_combo.currentText()
+
+
+class BookTreeItem(QTreeWidgetItem):
+    def __init__(self, parent_window: MainWindow, book_name: str):
+        super(BookTreeItem, self).__init__()
+        self.parent_window = parent_window
+        self.setText(0, book_name)
+        for address_name in self.parent_window.loaded_books[book_name]:
+            if address_name != "_BOOK_NAME":
+                address_tree_item = QTreeWidgetItem()
+                address_tree_item.setText(0, address_name)
+                self.addChild(address_tree_item)
+
+    def new_address(self, name: str):
+        address_tree_item = QTreeWidgetItem()
+        address_tree_item.setText(0, name)
+        self.addChild(address_tree_item)
+        print(self.childCount())
 
 
 class GlyphEditDialog(QDialog):
