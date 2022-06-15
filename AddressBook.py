@@ -959,7 +959,9 @@ class GlyphEditDialog(QDialog):
             else:
                 del self.parent().loaded_books[current_book][current_address][
                     self.glyph_type.lower()][f'glyph{pos+1}']
-            self.parent().onAddressClick(current_address)
+            self.parent().onAddressSelected(
+                self.parent().address_selector.currentItem(), 0
+                )
         self.hide()
         self.last_correct_glyph = ''
         self.glyph_name_button.setIcon(QIcon())
