@@ -279,7 +279,6 @@ def set_theme(qApp: QApplication):
             ))
 
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         """Creates a MainWindow Object
@@ -534,17 +533,6 @@ glyphs that failed to load:\n{failed}""")
 
         self.setCentralWidget(QWidget())
         self.centralWidget().setLayout(general_layout)
-
-        # information_layout = QFormLayout()
-        # information_widget = QWidget()
-        # information_widget.setLayout(information_layout)
-        # general_layout.addWidget(information_widget)
-        # information_layout.addRow("Selected Book: ",
-        #                           self.inform_selected_book)
-        # information_layout.addRow("Selected Address: ",
-        #                           self.inform_selected_address)
-        # information_layout.addRow("Debug: ",
-        #                           self.inform_debug)
         general_layout.addWidget(self.address_selector)
 
         address_tabs = QTabWidget()
@@ -628,7 +616,6 @@ glyphs that failed to load:\n{failed}""")
             glyph_pos (int): the index of that glyph in the address
             glyph_type (str): the type of glyph it is
         """
-        self.inform_debug.setText(f"{glyph_pos, glyph_type}")
         self.glyph_dialogues[glyph_type].setWindowTitle(
             f"{glyph_type}: {glyph_pos}")
         self.glyph_dialogues[glyph_type].exec()
