@@ -630,56 +630,54 @@ glyphs that failed to load:\n{failed}""")
             self, "Open Book File", application_path, "JSON files (*.json)"
             )[0]
         book_name = os.path.split(book_path)[-1]
-
-        if os.path.isfile(book_path):
-            with open(book_path, 'r') as book_file:
-                book = json.load(book_file)
-            if '_BOOK_NAME' in book:
-                book_name = book['_BOOK_NAME']
-            if book_name in self.loaded_books:
-                overite = QMessageBox(
-                    QMessageBox.Icon.Warning, "Overite?",
-                    "This book is already loaded would you like to overite it",
-                    QMessageBox.Yes | QMessageBox.No, self
-                    )
-                if (
-                        overite.exec()
-                        == QMessageBox.NoRole | QMessageBox.RejectRole):
-                    return None
-                for child in self.address_selector.children():
-                    if child.text(0) == book_name:
-                        self.address_selector.removeItemWidget(child)
-                        del child
-                        break
-            book_items = {}
-            for name, entry in book.items():
-                try:
-                    book_items[name] = {}
-                    for address_type, address in entry.items():
-                        book_items[name][address_type] = {}
-                        if type(address) is dict:
-                            for item, value in address.items():
-                                book_items[name][address_type][item] = value
-                        else:
-                            book_items[name][address_type] = address
-                    if 'IDC' not in entry:
-                        book_items[name]['IDC'] = ''
-                    if type(book_items[name]['IDC']) is str:
-                        book_items[name]['IDC'] = {
-                            'code': book_items[name]["IDC"],
-                            "OC broadcastable": False,
-                            'OC port': '',
-                            'component address': ''
-                        }
-                except AttributeError:
-                    if type(entry) is str:
-                        book_items[name] = entry
-            self.books_path_list[book_name] = book_path
-            self.loaded_books[book_name] = book_items
-            self.address_selector.addTopLevelItem(
-                BookTreeItem(self, book_name))
-        elif book_path:
-            print('failed - file not exist')
+        if not os.path.isfile(book_path):
+            return None
+        with open(book_path, 'r') as book_file:
+            book = json.load(book_file)
+        if '_BOOK_NAME' in book:
+            book_name = book['_BOOK_NAME']
+        if book_name in self.loaded_books:
+            overite = QMessageBox(
+                QMessageBox.Icon.Warning, "Overite?",
+                "This book is already loaded would you like to overite it",
+                QMessageBox.Yes | QMessageBox.No, self
+                )
+            if (
+                    overite.exec()
+                    == QMessageBox.NoRole | QMessageBox.RejectRole):
+                return None
+            for child in self.address_selector.children():
+                if child.text(0) == book_name:
+                    self.address_selector.removeItemWidget(child)
+                    del child
+                    break
+        book_items = {}
+        for name, entry in book.items():
+            try:
+                book_items[name] = {}
+                for address_type, address in entry.items():
+                    book_items[name][address_type] = {}
+                    if type(address) is dict:
+                        for item, value in address.items():
+                            book_items[name][address_type][item] = value
+                    else:
+                        book_items[name][address_type] = address
+                if 'IDC' not in entry:
+                    book_items[name]['IDC'] = ''
+                if type(book_items[name]['IDC']) is str:
+                    book_items[name]['IDC'] = {
+                        'code': book_items[name]["IDC"],
+                        "OC broadcastable": False,
+                        'OC port': '',
+                        'component address': ''
+                    }
+            except AttributeError:
+                if type(entry) is str:
+                    book_items[name] = entry
+        self.books_path_list[book_name] = book_path
+        self.loaded_books[book_name] = book_items
+        self.address_selector.addTopLevelItem(
+            BookTreeItem(self, book_name))
 
     def onNewBookClick(self, s: bool):
         """event handler for when the new book action is clicked
