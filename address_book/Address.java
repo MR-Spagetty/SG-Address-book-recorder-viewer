@@ -12,7 +12,7 @@ public class Address {
      * @see address_book.DeviceTypes
      */
     public final DeviceTypes addressType;
-    public final String network;
+    public final Network network;
     public final int maxGlyphs;
     private HashMap<Integer, Glyph> glyphs = new HashMap<>();
 
@@ -24,20 +24,18 @@ public class Address {
      *                    {@link address_book.DeviceTypes DeviceTypes})
      * @see #Address(String)
      */
-    public Address(String network, DeviceTypes addressType) {
-        this.addressType = addressType;
-        this.network = network;
-        switch (addressType) {
-        case STARGATE:
-            this.maxGlyphs = 8;
-            break;
-        case TRANSPORT_RINGS:
-            this.maxGlyphs = 16;
-            break;
-        case null, default:
+    public Address(Network network, DeviceTypes addressType) {
+        if (network == null) {
             throw new IllegalArgumentException(
                     String.format("invalid Address type given:%nyou gave: %s%nvalid values are: %s",
                             addressType, DeviceTypes.values()));
+        }
+        this.addressType = addressType;
+        this.network = network;
+        this.maxGlyphs = this.network.networkType.maxGlyphs;
+        // fill the address with placeholder glyphs
+        for (int i = 0; i < this.maxGlyphs; i++) {
+            this.glyphs.put(i, Glyph.NONE);
         }
     }
 
@@ -51,7 +49,7 @@ public class Address {
      * @param network the network the address inhabits
      * @see #Address(String, DeviceTypes)
      */
-    public Address(String network) { this(network, DeviceTypes.STARGATE); }
+    public Address(Network network) { this(network, DeviceTypes.STARGATE); }
 
     /**
      * clears the glyphs stored in this address
