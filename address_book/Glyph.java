@@ -1,10 +1,21 @@
 package address_book;
 
 import java.nio.file.Path;
+
 /**
  * a simple glyph class for use as stargate or transport ring glyphs
  */
 public class Glyph implements Comparable<Glyph> {
+    /**
+     * the main directory that contains all of the glyph image files
+     */
+    public static final Path GLYPHS_DIR = Path
+            .of(Glyph.class.getClassLoader().getResource("Glyphs").getPath());
+    /**
+     * the placeholder glyph
+     */
+    public static final Glyph NONE = new Glyph("none", -1, GLYPHS_DIR.resolve("none.png"));
+
     public final String name;
     public final Integer id;
     public final Path imgPath;
