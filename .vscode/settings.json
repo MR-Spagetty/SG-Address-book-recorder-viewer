@@ -1,0 +1,8 @@
+{
+    "java.checkstyle.configuration": "${workspaceFolder}/style_checks.xml",
+    "java.format.settings.url": "eclipse-formatter.xml",
+    "[java]": {
+        "editor.detectIndentation": false,
+        "editor.tabSize": 2
+    }
+}
